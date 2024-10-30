@@ -20,11 +20,27 @@
 
 #include "server.h"
 #include <errno.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <X11/Xlib.h>
 
+enum _atoms {
+	ATOM_IM = 0,
+	ATOM_XIM_SERVERS,
+	ATOM_LOCALES,
+	ATOM_TRANSPORT,
+	ATOM_MAX
+};
+static const char *_atom_names[] = {
+	"@im=mxim",
+	"XIM_SERVERS",
+	"LOCALES",
+	"TRANSPORT"
+};
+
 struct xim_server {
 	Display *display;
+	Atom atoms[ATOM_MAX];
 };
 
 static int _xim_server_is_connected(xim_server_t *server)
@@ -34,12 +50,24 @@ static int _xim_server_is_connected(xim_server_t *server)
 
 static int _xim_server_connect(xim_server_t *server)
 {
+	int i;
+
 	if (_xim_server_is_connected(server)) {
 		return -EALREADY;
 	}
 
 	if (!(server->display = XOpenDisplay(NULL))) {
 		return -EIO;
+	}
+
+	for (i = ATOM_IM; i < ATOM_MAX; i++) {
+		if ((server->atoms[i] = XInternAtom(server->display,
+		                                    _atom_names[i],
+		                                    False)) == None) {
+			fprintf(stderr, "%s: Could not lookup atom: %s\n",
+			        __func__, _atom_names[i]);
+			return -EFAULT;
+		}
 	}
 
 	return 0;
