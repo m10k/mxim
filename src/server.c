@@ -21,10 +21,29 @@
 #include "server.h"
 #include <errno.h>
 #include <stdlib.h>
+#include <X11/Xlib.h>
 
 struct xim_server {
-
+	Display *display;
 };
+
+static int _xim_server_is_connected(xim_server_t *server)
+{
+	return server->display != NULL;
+}
+
+static int _xim_server_connect(xim_server_t *server)
+{
+	if (_xim_server_is_connected(server)) {
+		return -EALREADY;
+	}
+
+	if (!(server->display = XOpenDisplay(NULL))) {
+		return -EIO;
+	}
+
+	return 0;
+}
 
 int xim_server_init(xim_server_t **server)
 {
@@ -34,8 +53,13 @@ int xim_server_init(xim_server_t **server)
 	err = -ENOMEM;
 
 	if ((s = calloc(1, sizeof(*s)))) {
+		err = _xim_server_connect(s);
+	}
+
+	if (!err) {
 		*server = s;
-		err = 0;
+	} else {
+		xim_server_free(&s);
 	}
 
 	return err;
@@ -45,6 +69,11 @@ int xim_server_free(xim_server_t **server)
 {
 	if (!server || !*server) {
 		return -EINVAL;
+	}
+
+	if ((*server)->display) {
+		XCloseDisplay((*server)->display);
+		(*server)->display = NULL;
 	}
 
 	free(*server);
