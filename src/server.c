@@ -22,7 +22,9 @@
 #include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <X11/Xlib.h>
+#include <X11/Xatom.h>
 
 enum _atoms {
 	ATOM_IM = 0,
@@ -41,6 +43,8 @@ static const char *_atom_names[] = {
 struct xim_server {
 	Display *display;
 	Atom atoms[ATOM_MAX];
+	char *properties[ATOM_MAX];
+	Window window;
 };
 
 static int _xim_server_is_connected(xim_server_t *server)
@@ -50,6 +54,9 @@ static int _xim_server_is_connected(xim_server_t *server)
 
 static int _xim_server_connect(xim_server_t *server)
 {
+	Window root_window;
+	XSetWindowAttributes attrs;
+	int screen;
 	int i;
 
 	if (_xim_server_is_connected(server)) {
@@ -69,6 +76,28 @@ static int _xim_server_connect(xim_server_t *server)
 			return -EFAULT;
 		}
 	}
+
+	screen = DefaultScreen(server->display);
+	root_window = RootWindow(server->display, screen);
+
+	memset(&attrs, 0, sizeof(attrs));
+	attrs.event_mask = ExposureMask;
+
+	server->window = XCreateWindow(server->display, root_window, 0, 0, 1, 1, 0,
+	                               CopyFromParent, CopyFromParent,
+	                               DefaultVisual(server->display, screen),
+	                               CWEventMask, &attrs);
+	XSetSelectionOwner(server->display, server->atoms[ATOM_IM], server->window, CurrentTime);
+	XSetSelectionOwner(server->display, server->atoms[ATOM_XIM_SERVERS], server->window, CurrentTime);
+
+	/* register IM Server by prepending it to the XIM_SERVERS property of the root window */
+	XChangeProperty(server->display, root_window,
+	                server->atoms[ATOM_XIM_SERVERS], XA_ATOM, 32, PropModePrepend,
+	                (unsigned char*)&server->atoms[ATOM_IM], 1);
+	XSync(server->display, False);
+
+	server->properties[ATOM_LOCALES] = "@locales=en_US";
+	server->properties[ATOM_TRANSPORT] = "@transport=tcp/127.0.0.1:1234";
 
 	return 0;
 }
