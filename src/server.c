@@ -139,7 +139,71 @@ int xim_server_free(xim_server_t **server)
 	return 0;
 }
 
+static int _handle_selection_request(xim_server_t *server, XSelectionRequestEvent *event)
+{
+	XEvent response;
+
+	if (event->target == server->atoms[ATOM_LOCALES]) {
+		static const char locale[] = "@locale=en_US";
+
+		XChangeProperty(server->display, event->requestor,
+		                event->property, event->target,
+		                8, PropModeReplace, (unsigned char*)locale,
+		                strlen(locale));
+	} else if (event->target == server->atoms[ATOM_TRANSPORT]) {
+		static const char transport[] = "@transport=tcp/127.0.0.1:1234";
+
+		XChangeProperty(server->display, event->requestor,
+		                event->property, event->target,
+		                8, PropModeReplace, (unsigned char*)transport,
+		                strlen(transport));
+	} else {
+		fprintf(stderr, "XSelectionRequestEvent on unhandled property 0x%lx\n", event->target);
+		return -ENOSYS;
+	}
+
+	memset(&response, 0, sizeof(response));
+	response.type = SelectionNotify;
+	response.xselection.requestor = event->requestor;
+	response.xselection.selection = event->selection;
+	response.xselection.target = event->target;
+	response.xselection.time = event->time;
+	response.xselection.property = event->property;
+	XSendEvent(server->display, event->requestor, False, NoEventMask, &response);
+
+	return 0;
+}
+
+static int _handle_x_event(xim_server_t *server)
+{
+	XEvent event;
+	int err;
+
+	if (XNextEvent(server->display, &event) != 0) {
+		return -EAGAIN;
+	}
+
+	switch (event.type) {
+	case SelectionRequest:
+		err = _handle_selection_request(server, (XSelectionRequestEvent*)&event);
+		break;
+
+	default:
+		fprintf(stderr, "Unhandled XEvent with type 0x%x\n", event.type);
+		err = -ENOSYS;
+		break;
+	}
+
+	return err;
+}
+
 int xim_server_run(xim_server_t *server)
 {
-	return -ENOSYS;
+	int err;
+
+	while (1) {
+		_handle_x_event(server);
+	}
+
+	return err;
 }
