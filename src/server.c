@@ -32,7 +32,7 @@ enum _atoms {
 	ATOM_MAX
 };
 static const char *_atom_names[] = {
-	"@im=mxim",
+	"@server=mxim",
 	"XIM_SERVERS",
 	"LOCALES",
 	"TRANSPORT"
