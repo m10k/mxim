@@ -1,4 +1,4 @@
-OBJECTS = main.o server.o
+OBJECTS = main.o xhandler.o
 OUTPUT = mxim
 PHONY = clean all install
 CFLAGS = -Wall -O2

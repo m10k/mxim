@@ -1,5 +1,5 @@
 /*
- * server.c - This file is part of mxim
+ * xhandler.c - This file is part of mxim
  * Copyright (C) 2024 Matthias Kruk
  *
  * Mxim is free software; you can redistribute it and/or modify
@@ -18,7 +18,7 @@
  * Boston, MA 02111-1307, USA.
  */
 
-#include "server.h"
+#include "xhandler.h"
 #include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -40,35 +40,35 @@ static const char *_atom_names[] = {
 	"TRANSPORT"
 };
 
-struct xim_server {
+struct x_handler {
 	Display *display;
 	Atom atoms[ATOM_MAX];
 	char *properties[ATOM_MAX];
 	Window window;
 };
 
-static int _xim_server_is_connected(xim_server_t *server)
+static int _x_handler_is_connected(x_handler_t *handler)
 {
-	return server->display != NULL;
+	return handler->display != NULL;
 }
 
-static int _xim_server_connect(xim_server_t *server)
+static int _x_handler_connect(x_handler_t *handler)
 {
 	Window root_window;
 	XSetWindowAttributes attrs;
 	int screen;
 	int i;
 
-	if (_xim_server_is_connected(server)) {
+	if (_x_handler_is_connected(handler)) {
 		return -EALREADY;
 	}
 
-	if (!(server->display = XOpenDisplay(NULL))) {
+	if (!(handler->display = XOpenDisplay(NULL))) {
 		return -EIO;
 	}
 
 	for (i = ATOM_IM; i < ATOM_MAX; i++) {
-		if ((server->atoms[i] = XInternAtom(server->display,
+		if ((handler->atoms[i] = XInternAtom(handler->display,
 		                                    _atom_names[i],
 		                                    False)) == None) {
 			fprintf(stderr, "%s: Could not lookup atom: %s\n",
@@ -77,83 +77,83 @@ static int _xim_server_connect(xim_server_t *server)
 		}
 	}
 
-	screen = DefaultScreen(server->display);
-	root_window = RootWindow(server->display, screen);
+	screen = DefaultScreen(handler->display);
+	root_window = RootWindow(handler->display, screen);
 
 	memset(&attrs, 0, sizeof(attrs));
 	attrs.event_mask = ExposureMask;
 
-	server->window = XCreateWindow(server->display, root_window, 0, 0, 1, 1, 0,
-	                               CopyFromParent, CopyFromParent,
-	                               DefaultVisual(server->display, screen),
-	                               CWEventMask, &attrs);
-	XSetSelectionOwner(server->display, server->atoms[ATOM_IM], server->window, CurrentTime);
-	XSetSelectionOwner(server->display, server->atoms[ATOM_XIM_SERVERS], server->window, CurrentTime);
+	handler->window = XCreateWindow(handler->display, root_window, 0, 0, 1, 1, 0,
+	                                CopyFromParent, CopyFromParent,
+	                                DefaultVisual(handler->display, screen),
+	                                CWEventMask, &attrs);
+	XSetSelectionOwner(handler->display, handler->atoms[ATOM_IM], handler->window, CurrentTime);
+	XSetSelectionOwner(handler->display, handler->atoms[ATOM_XIM_SERVERS], handler->window, CurrentTime);
 
 	/* register IM Server by prepending it to the XIM_SERVERS property of the root window */
-	XChangeProperty(server->display, root_window,
-	                server->atoms[ATOM_XIM_SERVERS], XA_ATOM, 32, PropModePrepend,
-	                (unsigned char*)&server->atoms[ATOM_IM], 1);
-	XSync(server->display, False);
+	XChangeProperty(handler->display, root_window,
+	                handler->atoms[ATOM_XIM_SERVERS], XA_ATOM, 32, PropModePrepend,
+	                (unsigned char*)&handler->atoms[ATOM_IM], 1);
+	XSync(handler->display, False);
 
-	server->properties[ATOM_LOCALES] = "@locales=en_US";
-	server->properties[ATOM_TRANSPORT] = "@transport=tcp/127.0.0.1:1234";
+	handler->properties[ATOM_LOCALES] = "@locales=en_US";
+	handler->properties[ATOM_TRANSPORT] = "@transport=tcp/127.0.0.1:1234";
 
 	return 0;
 }
 
-int xim_server_init(xim_server_t **server)
+int x_handler_init(x_handler_t **handler)
 {
-	xim_server_t *s;
+        x_handler_t *hnd;
 	int err;
 
 	err = -ENOMEM;
 
-	if ((s = calloc(1, sizeof(*s)))) {
-		err = _xim_server_connect(s);
+	if ((hnd = calloc(1, sizeof(*hnd)))) {
+		err = _x_handler_connect(hnd);
 	}
 
 	if (!err) {
-		*server = s;
+		*handler = hnd;
 	} else {
-		xim_server_free(&s);
+	        x_handler_free(&hnd);
 	}
 
 	return err;
 }
 
-int xim_server_free(xim_server_t **server)
+int x_handler_free(x_handler_t **handler)
 {
-	if (!server || !*server) {
+	if (!handler || !*handler) {
 		return -EINVAL;
 	}
 
-	if ((*server)->display) {
-		XCloseDisplay((*server)->display);
-		(*server)->display = NULL;
+	if ((*handler)->display) {
+		XCloseDisplay((*handler)->display);
+		(*handler)->display = NULL;
 	}
 
-	free(*server);
-	*server = NULL;
+	free(*handler);
+	*handler = NULL;
 
 	return 0;
 }
 
-static int _handle_selection_request(xim_server_t *server, XSelectionRequestEvent *event)
+static int _handle_selection_request(x_handler_t *handler, XSelectionRequestEvent *event)
 {
 	XEvent response;
 
-	if (event->target == server->atoms[ATOM_LOCALES]) {
+	if (event->target == handler->atoms[ATOM_LOCALES]) {
 		static const char locale[] = "@locale=en_US";
 
-		XChangeProperty(server->display, event->requestor,
+		XChangeProperty(handler->display, event->requestor,
 		                event->property, event->target,
 		                8, PropModeReplace, (unsigned char*)locale,
 		                strlen(locale));
-	} else if (event->target == server->atoms[ATOM_TRANSPORT]) {
+	} else if (event->target == handler->atoms[ATOM_TRANSPORT]) {
 		static const char transport[] = "@transport=tcp/127.0.0.1:1234";
 
-		XChangeProperty(server->display, event->requestor,
+		XChangeProperty(handler->display, event->requestor,
 		                event->property, event->target,
 		                8, PropModeReplace, (unsigned char*)transport,
 		                strlen(transport));
@@ -169,23 +169,23 @@ static int _handle_selection_request(xim_server_t *server, XSelectionRequestEven
 	response.xselection.target = event->target;
 	response.xselection.time = event->time;
 	response.xselection.property = event->property;
-	XSendEvent(server->display, event->requestor, False, NoEventMask, &response);
+	XSendEvent(handler->display, event->requestor, False, NoEventMask, &response);
 
 	return 0;
 }
 
-static int _handle_x_event(xim_server_t *server)
+static int _handle_x_event(x_handler_t *handler)
 {
 	XEvent event;
 	int err;
 
-	if (XNextEvent(server->display, &event) != 0) {
+	if (XNextEvent(handler->display, &event) != 0) {
 		return -EAGAIN;
 	}
 
 	switch (event.type) {
 	case SelectionRequest:
-		err = _handle_selection_request(server, (XSelectionRequestEvent*)&event);
+		err = _handle_selection_request(handler, (XSelectionRequestEvent*)&event);
 		break;
 
 	default:
@@ -197,12 +197,12 @@ static int _handle_x_event(xim_server_t *server)
 	return err;
 }
 
-int xim_server_run(xim_server_t *server)
+int x_handler_run(x_handler_t *handler)
 {
 	int err;
 
 	while (1) {
-		_handle_x_event(server);
+		_handle_x_event(handler);
 	}
 
 	return err;

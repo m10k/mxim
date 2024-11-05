@@ -1,5 +1,5 @@
 /*
- * server.h - This file is part of mxim
+ * xhandler.h - This file is part of mxim
  * Copyright (C) 2024 Matthias Kruk
  *
  * Mxim is free software; you can redistribute it and/or modify
@@ -18,13 +18,13 @@
  * Boston, MA 02111-1307, USA.
  */
 
-#ifndef SERVER_H
-#define SERVER_H
+#ifndef XHANDLER_H
+#define XHANDLER_H
 
-typedef struct xim_server xim_server_t;
+typedef struct x_handler x_handler_t;
 
-int xim_server_init(xim_server_t **server);
-int xim_server_free(xim_server_t **server);
-int xim_server_run(xim_server_t *server);
+int x_handler_init(x_handler_t **handler);
+int x_handler_free(x_handler_t **handler);
+int x_handler_run(x_handler_t *handler);
 
-#endif /* SERVER_H */
+#endif /* XHANDLER_H */

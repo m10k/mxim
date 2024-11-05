@@ -18,7 +18,7 @@
  * Boston, MA 02111-1307, USA.
  */
 
-#include "server.h"
+#include "xhandler.h"
 #include <errno.h>
 #include <getopt.h>
 #include <stdio.h>
@@ -42,7 +42,7 @@ static void _print_usage(const char *name)
 
 int main(int argc, char *argv[])
 {
-	xim_server_t *server;
+	x_handler_t *xhandler;
 	int ret;
 
 	do {
@@ -63,14 +63,14 @@ int main(int argc, char *argv[])
 		}
 	} while (ret >= 0);
 
-	ret = xim_server_init(&server);
+	ret = x_handler_init(&xhandler);
 	if (ret < 0) {
-		fprintf(stderr, "Could not initialize IM server: %s\n", strerror(-ret));
+		fprintf(stderr, "Could not initialize IM handler: %s\n", strerror(-ret));
 		return 2;
 	}
 
-	ret = xim_server_run(server);
+	ret = x_handler_run(xhandler);
 
-	xim_server_free(&server);
+	x_handler_free(&xhandler);
 	return ret;
 }
