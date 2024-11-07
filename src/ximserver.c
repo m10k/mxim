@@ -30,6 +30,11 @@
 #include <arpa/inet.h>
 #include <unistd.h>
 
+typedef struct {
+	int fd;
+	struct sockaddr_in addr;
+} xim_client_t;
+
 struct xim_server {
 	thread_t *thread;
 
@@ -130,6 +135,36 @@ int xim_server_free(xim_server_t **server)
 	return 0;
 }
 
+static int _xim_server_accept(xim_server_t *server)
+{
+	xim_client_t *client;
+	socklen_t addrlen;
+	int err;
+
+	if (!(client = calloc(1, sizeof(*client)))) {
+		return -ENOMEM;
+	}
+
+	addrlen = sizeof(client->addr);
+	if ((client->fd = accept(server->fd, (struct sockaddr*)&client->addr, &addrlen)) < 0) {
+		err = -errno;
+	} else {
+		err = _watch_fd(server->epfd, client->fd, client);
+	}
+
+	if (err) {
+		free(client);
+	}
+
+	return err;
+}
+
+int _handle_client_event(xim_client_t *client)
+{
+	fprintf(stderr, "Client event on %p\n", client);
+	return -ENOSYS;
+}
+
 static void* _xim_server_run(xim_server_t *server)
 {
 	int nev;
@@ -141,8 +176,13 @@ static void* _xim_server_run(xim_server_t *server)
 		nev = epoll_wait(server->epfd, events, sizeof(events) / sizeof(events[0]), -1);
 
 		while (--nev >= 0) {
-			/* handle event */
 			fprintf(stderr, "Event on %p\n", events[nev].data.ptr);
+
+			if (events[nev].data.ptr == server) {
+				_xim_server_accept(server);
+			} else {
+				_handle_client_event((xim_client_t*)events[nev].data.ptr);
+			}
 		}
 	}
 
