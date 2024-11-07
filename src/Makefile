@@ -1,4 +1,4 @@
-OBJECTS = main.o xhandler.o
+OBJECTS = main.o xhandler.o thread.o
 OUTPUT = mxim
 PHONY = clean all install
 CFLAGS = -Wall -O2
