@@ -19,11 +19,14 @@
  */
 
 #include "xhandler.h"
+#include "ximserver.h"
 #include <errno.h>
 #include <getopt.h>
 #include <stdio.h>
 #include <string.h>
 
+#define MXIM_ADDR "127.0.0.1"
+#define MXIM_PORT 1234
 static const char *_cmd_flags = "h";
 
 static struct option _cmd_opts[] = {
@@ -43,6 +46,7 @@ static void _print_usage(const char *name)
 int main(int argc, char *argv[])
 {
 	x_handler_t *xhandler;
+	xim_server_t *server;
 	int ret;
 
 	do {
@@ -69,8 +73,23 @@ int main(int argc, char *argv[])
 		return 2;
 	}
 
-	ret = x_handler_run(xhandler);
+	ret = xim_server_init(&server, MXIM_ADDR, MXIM_PORT);
+	if (ret < 0) {
+		fprintf(stderr, "Could not initialize XIM server: %s\n", strerror(-ret));
+		return 3;
+	}
+
+	ret = xim_server_start(server);
+	if (ret < 0) {
+		fprintf(stderr, "Could not start XIM server: %s\n", strerror(-ret));
+		return 4;
+	}
+
+	x_handler_run(xhandler);
+	ret = xim_server_stop(server);
 
 	x_handler_free(&xhandler);
+	xim_server_free(&server);
+
 	return ret;
 }
