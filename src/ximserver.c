@@ -18,6 +18,7 @@
  * Boston, MA 02111-1307, USA.
  */
 
+#include "fd.h"
 #include "thread.h"
 #include "ximserver.h"
 #include <errno.h>
@@ -31,32 +32,79 @@
 #include <unistd.h>
 
 typedef struct {
-	int fd;
-	struct sockaddr_in addr;
+	fd_t *fd;
 } xim_client_t;
 
 struct xim_server {
+	fd_t *fd;
 	thread_t *thread;
 
-	int fd;
 	int epfd;
-	struct sockaddr_in addr;
 };
 
-static int _watch_fd(int epfd, int fd, void *data)
+static int _watch_fd(int epfd, fd_t *fd)
 {
 	struct epoll_event ev;
 	int err;
 
 	ev.events = EPOLLIN;
-	ev.data.ptr = data;
+	ev.data.ptr = fd;
 	err = 0;
 
-	if (epoll_ctl(epfd, EPOLL_CTL_ADD, fd, &ev) < 0) {
+	if (epoll_ctl(epfd, EPOLL_CTL_ADD, fd->fd, &ev) < 0) {
 		err = -errno;
 	}
 
 	return err;
+}
+
+static void _xim_client_in(fd_t *fd, fd_event_t event, xim_client_t *client, void *data)
+{
+	return;
+}
+
+int xim_client_free(xim_client_t **client)
+{
+	if (!client || !*client) {
+		return -EINVAL;
+	}
+
+	if ((*client)->fd) {
+		fd_free(&(*client)->fd);
+	}
+	free(*client);
+	*client = NULL;
+
+	return 0;
+}
+
+static void _xim_server_in(fd_t *fd, fd_event_t event, xim_server_t *server, void *data)
+{
+	xim_client_t *ximclient;
+	fd_t *client;
+	int err;
+
+	if ((err = fd_accept(fd, &client)) < 0) {
+		fprintf(stderr, "fd_accept: %s\n", strerror(-err));
+		return;
+	}
+
+	if (!(ximclient = calloc(1, sizeof(*ximclient)))) {
+		perror("calloc");
+		fd_free(&fd);
+		return;
+	}
+
+	ximclient->fd = client;
+	client->userdata = ximclient;
+	fd_set_callback(client, FD_EVENT_IN, (fd_callback_t*)_xim_client_in, ximclient);
+
+	if ((err = _watch_fd(server->epfd, ximclient->fd)) < 0) {
+		fprintf(stderr, "_watch_fd: %s\n", strerror(-err));
+		xim_client_free(&ximclient);
+	}
+
+	return;
 }
 
 int xim_server_init(xim_server_t **server, const char *addr, unsigned short port)
@@ -80,25 +128,16 @@ int xim_server_init(xim_server_t **server, const char *addr, unsigned short port
 		goto cleanup;
 	}
 
-	srv->addr.sin_family = AF_INET;
-	srv->addr.sin_port = htons(port);
-	if (inet_pton(AF_INET, addr, &srv->addr.sin_addr) < 0) {
-		err = -errno;
-		perror("inet_pton");
+	if ((err = fd_open(&srv->fd, FD_DOM_IN4, addr, port)) < 0) {
 		goto cleanup;
 	}
 
-	if ((srv->fd = socket(PF_INET, SOCK_STREAM, 0)) < 0 ||
-	    bind(srv->fd, (struct sockaddr*)&srv->addr, sizeof(srv->addr)) < 0 ||
-	    listen(srv->fd, 8) < 0) {
-		err = -errno;
+	if ((err = _watch_fd(srv->epfd, srv->fd)) < 0) {
 		goto cleanup;
 	}
-	fprintf(stderr, "Listening on [%s]:%hu\n", addr, port);
 
-	if ((err = _watch_fd(srv->epfd, srv->fd, srv)) < 0) {
-		goto cleanup;
-	}
+	srv->fd->userdata = srv;
+	fd_set_callback(srv->fd, FD_EVENT_IN, (fd_callback_t*)_xim_server_in, srv);
 
 cleanup:
 	if (!err) {
@@ -125,44 +164,13 @@ int xim_server_free(xim_server_t **server)
 		(*server)->epfd = -1;
 	}
 	if ((*server)->fd >= 0) {
-		close((*server)->fd);
-		(*server)->fd = -1;
+		fd_free(&(*server)->fd);
 	}
 
 	free(*server);
 	*server = NULL;
 
 	return 0;
-}
-
-static int _xim_server_accept(xim_server_t *server)
-{
-	xim_client_t *client;
-	socklen_t addrlen;
-	int err;
-
-	if (!(client = calloc(1, sizeof(*client)))) {
-		return -ENOMEM;
-	}
-
-	addrlen = sizeof(client->addr);
-	if ((client->fd = accept(server->fd, (struct sockaddr*)&client->addr, &addrlen)) < 0) {
-		err = -errno;
-	} else {
-		err = _watch_fd(server->epfd, client->fd, client);
-	}
-
-	if (err) {
-		free(client);
-	}
-
-	return err;
-}
-
-int _handle_client_event(xim_client_t *client)
-{
-	fprintf(stderr, "Client event on %p\n", client);
-	return -ENOSYS;
 }
 
 static void* _xim_server_run(xim_server_t *server)
@@ -172,16 +180,21 @@ static void* _xim_server_run(xim_server_t *server)
 	while (!thread_is_stopping(server->thread)) {
 		struct epoll_event events[8];
 
-		fprintf(stderr, "Waiting for events...\n");
 		nev = epoll_wait(server->epfd, events, sizeof(events) / sizeof(events[0]), -1);
 
 		while (--nev >= 0) {
-			fprintf(stderr, "Event on %p\n", events[nev].data.ptr);
+			fd_t *fd;
 
-			if (events[nev].data.ptr == server) {
-				_xim_server_accept(server);
-			} else {
-				_handle_client_event((xim_client_t*)events[nev].data.ptr);
+			fd = events[nev].data.ptr;
+
+			if (events[nev].events & EPOLLIN) {
+				fd_notify(fd, FD_EVENT_IN, NULL);
+			}
+			if (events[nev].events & EPOLLERR) {
+				fd_notify(fd, FD_EVENT_ERR, NULL);
+			}
+			if (events[nev].events & EPOLLHUP) {
+				fd_notify(fd, FD_EVENT_HUP, NULL);
 			}
 		}
 	}
