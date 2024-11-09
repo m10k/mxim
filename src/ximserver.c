@@ -21,6 +21,7 @@
 #include "fd.h"
 #include "thread.h"
 #include "ximserver.h"
+#include "ximclient.h"
 #include <errno.h>
 #include <stdio.h>
 #include <string.h>
@@ -30,10 +31,6 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <unistd.h>
-
-typedef struct {
-	fd_t *fd;
-} xim_client_t;
 
 struct xim_server {
 	fd_t *fd;
@@ -58,26 +55,6 @@ static int _watch_fd(int epfd, fd_t *fd)
 	return err;
 }
 
-static void _xim_client_in(fd_t *fd, fd_event_t event, xim_client_t *client, void *data)
-{
-	return;
-}
-
-int xim_client_free(xim_client_t **client)
-{
-	if (!client || !*client) {
-		return -EINVAL;
-	}
-
-	if ((*client)->fd) {
-		fd_free(&(*client)->fd);
-	}
-	free(*client);
-	*client = NULL;
-
-	return 0;
-}
-
 static void _xim_server_in(fd_t *fd, fd_event_t event, xim_server_t *server, void *data)
 {
 	xim_client_t *ximclient;
@@ -89,17 +66,13 @@ static void _xim_server_in(fd_t *fd, fd_event_t event, xim_server_t *server, voi
 		return;
 	}
 
-	if (!(ximclient = calloc(1, sizeof(*ximclient)))) {
-		perror("calloc");
-		fd_free(&fd);
+	if ((err = xim_client_new(&ximclient, client)) < 0) {
+		fprintf(stderr, "xim_client_new: %s\n", strerror(-err));
+		fd_free(&client);
 		return;
 	}
 
-	ximclient->fd = client;
-	client->userdata = ximclient;
-	fd_set_callback(client, FD_EVENT_IN, (fd_callback_t*)_xim_client_in, ximclient);
-
-	if ((err = _watch_fd(server->epfd, ximclient->fd)) < 0) {
+	if ((err = _watch_fd(server->epfd, client)) < 0) {
 		fprintf(stderr, "_watch_fd: %s\n", strerror(-err));
 		xim_client_free(&ximclient);
 	}
