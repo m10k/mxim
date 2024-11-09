@@ -1,4 +1,4 @@
-OBJECTS = main.o xhandler.o thread.o ximserver.o
+OBJECTS = main.o xhandler.o thread.o ximserver.o fd.o
 OUTPUT = mxim
 PHONY = clean all install
 CFLAGS = -Wall -O2
