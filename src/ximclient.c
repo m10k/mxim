@@ -24,17 +24,12 @@
 #include <stdint.h>
 #include <stdlib.h>
 
-typedef enum {
-	STATE_START,
-	STATE_CONNECTED,
-	STATE_ERROR
-} client_state_t;
-
 struct xim_client {
 	fd_t *fd;
 	uint8_t rxbuf[1024];
 	size_t rxbuf_len;
-	client_state_t state;
+
+
 };
 
 static void _xim_client_in(fd_t *fd, fd_event_t event, xim_client_t *client, void *data)
