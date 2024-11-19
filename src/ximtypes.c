@@ -25,8 +25,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define PAD(n) ((4 - ((n) % 4)) % 4)
-
 struct XIMSTRING {
 	uint16_t len;
 	char data[];
