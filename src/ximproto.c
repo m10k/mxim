@@ -145,6 +145,7 @@ int xim_msg_decode(xim_msg_t **dst, const uint8_t *src, const size_t src_len)
 			msg->subtype = hdr->opcode_minor;
 			msg->length = hdr->length * 4;
 
+			err += sizeof(*hdr);
 			*dst = msg;
 		}
 	}
