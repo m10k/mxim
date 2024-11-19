@@ -57,14 +57,19 @@ static int _in4_open_sock(struct in4_priv *priv)
 {
 	int ret_val;
 	int sock;
+	int yes;
 
 	ret_val = -EINVAL;
 	sock = -1;
+	yes = 1;
 
 	if (priv) {
 		if ((sock = socket(PF_INET, SOCK_STREAM, 0)) < 0) {
 			ret_val = -errno;
 			perror("socket");
+		} else if (setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(yes)) < 0) {
+			ret_val = -errno;
+			perror("setsockopt");
 		} else if (bind(sock, (struct sockaddr*)&priv->addr,
 		                sizeof(priv->addr)) < 0) {
 			ret_val = -errno;
