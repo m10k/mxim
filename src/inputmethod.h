@@ -45,6 +45,9 @@ struct input_method {
 	/* Extensions supported by the input method */
 	const ext_t *exts;
 
+	/* The encodings supported by the IM */
+	const char **encodings;
+
 	/* Event handler called for each XIM_FORWARD_EVENT message */
 	int (*event)(input_method_t*, input_context_t*, int, int, XEvent*);
 };
