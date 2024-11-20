@@ -42,6 +42,9 @@ struct input_method {
 	/* The locale that is supported by the IM. NULL for any */
 	char *locale;
 
+	/* Extensions supported by the input method */
+	const ext_t *exts;
+
 	/* Event handler called for each XIM_FORWARD_EVENT message */
 	int (*event)(input_method_t*, input_context_t*, int, int, XEvent*);
 };
