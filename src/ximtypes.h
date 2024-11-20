@@ -27,8 +27,10 @@
 #define PAD(n) ((4 - ((n) % 4)) % 4)
 
 typedef enum {
-	ATTR_TYPE_CARD32 = 3,
-	ATTR_TYPE_WINDOW = 5
+	ATTR_TYPE_CARD32    =      3,
+	ATTR_TYPE_WINDOW    =      5,
+	ATTR_TYPE_XIMSTYLES =     10,
+	ATTR_TYPE_INVALID   = 0xfefe
 } attr_type_t;
 
 typedef struct {
