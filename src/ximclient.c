@@ -19,22 +19,147 @@
  */
 
 #include "fd.h"
+#include "inputmethod.h"
 #include "ximclient.h"
+#include "ximproto.h"
 #include <errno.h>
 #include <stdint.h>
+#include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 struct xim_client {
 	fd_t *fd;
 	uint8_t rxbuf[1024];
 	size_t rxbuf_len;
-
-
 };
+
+static void handle_connect_msg(xim_client_t *client, xim_msg_connect_t *msg)
+{
+	xim_msg_connect_reply_t *reply;
+	uint8_t buf[2048];
+	int buf_len;
+	int err;
+
+	/* FIXME: There is no need to dynamically allocate the reply */
+	if((err = xim_msg_new((xim_msg_t**)&reply, XIM_CONNECT_REPLY)) < 0) {
+		/* FIXME: handle error */
+		fprintf(stderr, "xim_msg_new: %s\n", strerror(-err));
+		return;
+	}
+
+	reply->server_ver.major = 1;
+	reply->server_ver.minor = 0;
+
+	fprintf(stderr, "Encoding reply\n");
+
+	if ((buf_len = xim_msg_encode((xim_msg_t*)reply, buf, sizeof(buf))) > 0) {
+		err = fd_write(client->fd, buf, buf_len);
+
+		if (err < 0) {
+			/* FIXME: handle error */
+			fprintf(stderr, "fd_write: %s\n", strerror(-err));
+		}
+	}
+
+	/* FIXME: Free reply */
+
+	return;
+}
+
+static void handle_open_msg(xim_client_t *client, xim_msg_open_t *msg)
+{
+	input_method_t *im;
+	uint8_t buf[2048];
+	int buf_len;
+	int err;
+
+	if (!(im = input_method_for_locale(msg->locale))) {
+		/* XIM_ERROR */
+	} else {
+		/* XIM_OPEN_REPLY */
+
+		xim_msg_open_reply_t reply;
+
+		reply.hdr.type = XIM_OPEN_REPLY;
+		reply.hdr.subtype = 0;
+		reply.id = im->id;
+		reply.im_attrs = im->im_attrs;
+		reply.ic_attrs = im->ic_attrs;
+
+		if ((buf_len = xim_msg_encode((xim_msg_t*)&reply, buf, sizeof(buf))) > 0) {
+			err = fd_write(client->fd, buf, buf_len);
+
+			if (err < 0) {
+				/* FIXME: handle error */
+				fprintf(stderr, "fd_write: %s\n", strerror(-err));
+			}
+		}
+	}
+
+	return;
+}
+
+static void _xim_client_handle_msg(xim_client_t *client, xim_msg_t *msg)
+{
+	fprintf(stderr, "Handling message\n");
+
+	switch (msg->type) {
+	case XIM_CONNECT:
+		fprintf(stderr,
+		        "XIM_CONNECT received\n"
+		        " -> %hu.%hu\n", ((xim_msg_connect_t*)msg)->client_ver.major,
+		        ((xim_msg_connect_t*)msg)->client_ver.minor);
+		handle_connect_msg(client, (xim_msg_connect_t*)msg);
+		break;
+
+	case XIM_OPEN:
+		fprintf(stderr,
+		        "XIM_OPEN received\n"
+		        " -> locale = %s\n",
+		        ((xim_msg_open_t*)msg)->locale);
+		handle_open_msg(client, (xim_msg_open_t*)msg);
+		break;
+
+	default:
+		fprintf(stderr, "Unhandled message type: %d\n", msg->type);
+		break;
+	}
+}
 
 static void _xim_client_in(fd_t *fd, fd_event_t event, xim_client_t *client, void *data)
 {
-	return;
+	xim_msg_t *msg;
+	ssize_t received_bytes;
+	ssize_t parsed_bytes;
+
+	received_bytes = fd_read(fd, client->rxbuf + client->rxbuf_len,
+	                         sizeof(client->rxbuf) - client->rxbuf_len);
+
+	fprintf(stderr, "%s(): Received %ld bytes\n", __func__, received_bytes);
+
+	if (received_bytes == 0) {
+		/* client disconnected */
+		xim_client_free(&client);
+		return;
+	}
+
+	if (received_bytes < 0) {
+		/* FIXME: handle error */
+		fprintf(stderr, "fd_read: %s\n", strerror(-received_bytes));
+		return;
+	}
+
+	client->rxbuf_len += received_bytes;
+
+	while ((parsed_bytes = xim_msg_decode(&msg, client->rxbuf, client->rxbuf_len)) > 0) {
+		_xim_client_handle_msg(client, msg);
+
+		/* Remove parsed message from the buffer */
+		client->rxbuf_len -= parsed_bytes;
+		memmove(client->rxbuf, client->rxbuf + parsed_bytes, client->rxbuf_len);
+		free(msg); /* FIXME: this is not the right function to free parsed messages */
+	}
 }
 
 int xim_client_new(xim_client_t **client, fd_t *fd)
