@@ -21,12 +21,31 @@
 #ifndef INPUTMETHOD_H
 #define INPUTMETHOD_H
 
+#include "ximtypes.h"
+#include "inputcontext.h"
+#include <stdint.h>
+#include <X11/Xlib.h>
+
 typedef struct input_method input_method_t;
 
-int input_method_register(input_method_t *im, const char *locale);
-input_method_t* input_method_for_locale(const char *locale);
+struct input_method {
+	/* Unique ID of the input method */
+	uint16_t id;
 
-int input_method_new(input_method_t **im);
-int input_method_free(input_method_t **im);
+	/* The input style that is implemented by the input method */
+	XIMStyle input_style;
+
+	/* Attributes of the input method */
+	const attr_t *im_attrs;
+	/* The attributes and default values of input contexts */
+	const attr_t *ic_attrs;
+	/* The locale that is supported by the IM. NULL for any */
+	char *locale;
+
+	/* Event handler called for each XIM_FORWARD_EVENT message */
+	int (*event)(input_method_t*, input_context_t*, int, int, XEvent*);
+};
+
+input_method_t* input_method_for_locale(const char *locale);
 
 #endif /* INPUTMETHOD_H */

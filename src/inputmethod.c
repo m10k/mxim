@@ -18,84 +18,35 @@
  * Boston, MA 02111-1307, USA.
  */
 
+#include "ximproto.h"
 #include "inputmethod.h"
 #include <errno.h>
 #include <stdlib.h>
 #include <string.h>
 
-struct input_method {
-
+static input_method_t _null_im = {
+	.locale = "invalid"
 };
 
-struct im_list {
-	const char *locale;
-	input_method_t *im;
-	struct im_list *next;
+static input_method_t *_input_methods[] = {
+	&_null_im
 };
-
-static struct im_list *_input_methods = NULL;
-
-int input_method_register(input_method_t *im, const char *locale)
-{
-	struct im_list *entry;
-	struct im_list **last;
-
-	if (!im) {
-		return -EINVAL;
-	}
-
-	if (!(entry = calloc(1, sizeof(*entry)))) {
-		return -ENOMEM;
-	}
-
-	entry->locale = locale;
-	entry->im = im;
-	for (last = &_input_methods; *last; ) {
-		last = &(*last)->next;
-	}
-	*last = entry;
-
-	return 0;
-}
 
 input_method_t* input_method_for_locale(const char *locale)
 {
-	struct im_list *cur;
+	int i;
 
-	for (cur = _input_methods; cur; cur = cur->next) {
+	for (i = 0; i < (sizeof(_input_methods) / sizeof(_input_methods[0])); i++) {
+		input_method_t *im;
+
+		im = _input_methods[i];
+
 		if (!locale || /* caller is okay with anything */
-		    !cur->locale || /* IM can handle any locale */
-		    strcmp(locale, cur->locale) == 0) {
-			return cur->im;
+		    !im->locale || /* IM can handle any locale */
+		    strcmp(locale, im->locale) == 0) {
+			return im;
 		}
 	}
 
 	return NULL;
-}
-
-int input_method_new(input_method_t **im)
-{
-	input_method_t *method;
-
-	if (!im) {
-		return -EINVAL;
-	}
-
-	if (!(method = calloc(1, sizeof(*method)))) {
-		return -ENOMEM;
-	}
-
-	*im = method;
-	return 0;
-}
-
-int input_method_free(input_method_t **im)
-{
-	if (!im || !*im) {
-		return -EINVAL;
-	}
-
-	free(*im);
-	*im = NULL;
-	return 0;
 }
