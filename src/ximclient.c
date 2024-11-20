@@ -104,6 +104,36 @@ static void handle_open_msg(xim_client_t *client, xim_msg_open_t *msg)
 	return;
 }
 
+static void handle_query_extension_msg(xim_client_t *client, xim_msg_query_extension_t *msg)
+{
+	uint8_t buf[2048];
+	int buf_len;
+	int err;
+
+	xim_msg_query_extension_reply_t reply;
+
+	if (!client->im) {
+		return;
+	}
+
+	reply.hdr.type = XIM_QUERY_EXTENSION_REPLY;
+	reply.hdr.subtype = 0;
+	reply.im = client->im->id;
+	reply.exts = client->im->exts;
+
+	if ((buf_len = xim_msg_encode((xim_msg_t*)&reply, buf, sizeof(buf))) > 0) {
+		err = fd_write(client->fd, buf, buf_len);
+
+		if (err < 0) {
+			fprintf(stderr, "fd_write: %s\n", strerror(-err));
+		} else {
+
+		}
+	}
+
+	return;
+}
+
 static void _xim_client_handle_msg(xim_client_t *client, xim_msg_t *msg)
 {
 	fprintf(stderr, "Handling message\n");
@@ -123,6 +153,19 @@ static void _xim_client_handle_msg(xim_client_t *client, xim_msg_t *msg)
 		        " -> locale = %s\n",
 		        ((xim_msg_open_t*)msg)->locale);
 		handle_open_msg(client, (xim_msg_open_t*)msg);
+		break;
+
+	case XIM_QUERY_EXTENSION:
+		fprintf(stderr, "XIM_QUERY_EXTENSION received\n");
+		if (((xim_msg_query_extension_t*)msg)->exts) {
+			int i;
+
+			for (i = 0; i < ((xim_msg_query_extension_t*)msg)->num_exts; i++) {
+				fprintf(stderr, " ext[%d] -> %s\n", i,
+				        ((xim_msg_query_extension_t*)msg)->exts[i]);
+			}
+		}
+		handle_query_extension_msg(client, (xim_msg_query_extension_t*)msg);
 		break;
 
 	default:
