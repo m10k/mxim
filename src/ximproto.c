@@ -24,6 +24,7 @@
 #include <stddef.h>
 #include <stdint.h>
 #include <stdlib.h>
+#include <string.h>
 #include <stdio.h>
 
 struct XIM_PACKET {
@@ -54,6 +55,20 @@ struct XIM_CONNECT_REPLY {
 	} server_ver;
 } __attribute__((packed));
 
+struct XIM_OPEN {
+	uint8_t len;
+	char str[];
+};
+
+struct XIM_OPEN_REPLY {
+	uint16_t im_id;
+	/* length of LISTofXIMATTR */
+	/* LISTofXIMATTR */
+	/* length of LISTofXICATTR */
+	/* 2 bytes padding */
+	/* LISTofXICATTR */
+};
+
 static const struct {
 	xim_msg_type_t type;
 	char *name;
@@ -68,6 +83,16 @@ static const struct {
 		.type = XIM_CONNECT_REPLY,
 		.name = "XIM_CONNECT_REPLY",
 		.size = sizeof(xim_msg_connect_reply_t)
+	},
+	[XIM_OPEN] = {
+		.type = XIM_OPEN,
+		.name = "XIM_OPEN",
+		.size = sizeof(xim_msg_open_t)
+	},
+	[XIM_OPEN_REPLY] = {
+		.type = XIM_OPEN_REPLY,
+		.name = "XIM_OPEN_REPLY",
+		.size = sizeof(xim_msg_open_reply_t)
 	}
 };
 
@@ -116,6 +141,31 @@ static int decode_XIM_CONNECT(xim_msg_t **dst, const struct XIM_CONNECT *src, co
 	return skip + sizeof(*src);
 }
 
+static int decode_XIM_OPEN(xim_msg_t **dst, const struct XIM_OPEN *src, const size_t src_len)
+{
+	xim_msg_open_t *msg;
+	char *locale;
+	int parsed_len;
+	int padding;
+	int padded_len;
+
+	if ((parsed_len = decode_STR(&locale, (const uint8_t*)src, src_len)) < 0) {
+		return parsed_len;
+	}
+
+	if (!(msg = calloc(1, sizeof(*msg)))) {
+		free(locale);
+		return -ENOMEM;
+	}
+
+	msg->locale = locale;
+	padding = PAD(parsed_len);
+	padded_len = parsed_len + padding;
+
+	*dst = (xim_msg_t*)msg;
+	return padded_len;
+}
+
 int xim_msg_decode(xim_msg_t **dst, const uint8_t *src, const size_t src_len)
 {
 	struct XIM_PACKET *hdr;
@@ -135,7 +185,15 @@ int xim_msg_decode(xim_msg_t **dst, const uint8_t *src, const size_t src_len)
 			                         src_len - sizeof(*hdr));
 			break;
 
+		case XIM_OPEN:
+			fprintf(stderr, "Decoding XIM_OPEN\n");
+			err = decode_XIM_OPEN(&msg, (struct XIM_OPEN*)(hdr + 1),
+			                      src_len - sizeof(*hdr));
+			break;
+
 		default:
+			fprintf(stderr, "Decoding of %hhu type message not implemented\n",
+			        hdr->opcode_major);
 			err = -ENOSYS;
 			break;
 		}
@@ -191,6 +249,87 @@ static int encode_XIM_CONNECT_REPLY(xim_msg_connect_reply_t *src, uint8_t *dst, 
 	return sizeof(*raw);
 }
 
+static int encode_XIM_OPEN_REPLY(xim_msg_open_reply_t *src, uint8_t *dst, const size_t dst_size)
+{
+	struct XIM_OPEN_REPLY *raw;
+	size_t required_size;
+	uint16_t num_imattrs;
+	uint16_t len_imattrs;
+	uint16_t num_icattrs;
+	uint16_t len_icattrs;
+	int encoded_len;
+	int i;
+
+	if (!src || !dst) {
+		return -EINVAL;
+	}
+
+	required_size = 4 * sizeof(uint16_t);
+	num_imattrs = num_icattrs = 0;
+	len_imattrs = len_icattrs = 0;
+
+	if (src->im_attrs) {
+		for (i = 0; src->im_attrs[i].name; i++) {
+			size_t attr_len;
+
+			fprintf(stderr, "XIMATTR: %s\n", src->im_attrs[i].name);
+			attr_len = 6 + strlen(src->im_attrs[i].name);
+			required_size += attr_len + PAD(attr_len);
+			num_imattrs++;
+			len_imattrs += attr_len + PAD(attr_len);
+		}
+	}
+
+	if (src->ic_attrs) {
+		for (i = 0; src->ic_attrs[i].name; i++) {
+			size_t attr_len;
+
+			fprintf(stderr, "XICATTR: %s\n", src->ic_attrs[i].name);
+			attr_len = 6 + strlen(src->ic_attrs[i].name);
+			required_size += attr_len + PAD(attr_len);
+			num_icattrs++;
+			len_icattrs += attr_len + PAD(attr_len);
+		}
+	}
+
+	if (dst_size < required_size) {
+		return -EMSGSIZE;
+	}
+
+	raw = (struct XIM_OPEN_REPLY*)dst;
+	raw->im_id = src->id;
+	*(uint16_t*)(raw + 1) = len_imattrs;
+	encoded_len = sizeof(*raw) + sizeof(uint16_t);
+
+	for (i = 0; i < num_imattrs; i++) {
+		int len;
+
+		if ((len = encode_ATTR(&src->im_attrs[i],
+		                       dst + encoded_len,
+		                       dst_size - encoded_len)) < 0) {
+			return len;
+		}
+		encoded_len += len;
+	}
+
+	*(uint16_t*)(dst + encoded_len + 0) = len_icattrs;
+	*(uint16_t*)(dst + encoded_len + 2) = 0;
+	encoded_len += 4;
+
+	for (i = 0; i < num_icattrs; i++) {
+		int len;
+
+		if ((len = encode_ATTR(&src->ic_attrs[i],
+		                       dst + encoded_len,
+		                       dst_size - encoded_len)) < 0) {
+			return len;
+		}
+		encoded_len += len;
+	}
+
+	return encoded_len;
+}
+
 int xim_msg_encode(xim_msg_t *src, uint8_t *dst, const size_t dst_size)
 {
 	struct XIM_PACKET *hdr;
@@ -214,6 +353,12 @@ int xim_msg_encode(xim_msg_t *src, uint8_t *dst, const size_t dst_size)
 		payload_len = encode_XIM_CONNECT_REPLY((xim_msg_connect_reply_t*)src,
 		                                       (uint8_t*)(hdr + 1),
 		                                       dst_size - sizeof(*hdr));
+		break;
+
+	case XIM_OPEN_REPLY:
+		payload_len = encode_XIM_OPEN_REPLY((xim_msg_open_reply_t*)src,
+		                                    (uint8_t*)(hdr + 1),
+		                                    dst_size - sizeof(*hdr));
 		break;
 
 	default:

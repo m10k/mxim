@@ -21,6 +21,7 @@
 #ifndef XIMPROTO_H
 #define XIMPROTO_H
 
+#include "ximtypes.h"
 #include <stdint.h>
 #include <sys/types.h>
 
@@ -117,6 +118,20 @@ typedef struct {
 		uint16_t minor;
 	} server_ver;
 } xim_msg_connect_reply_t;
+
+typedef struct {
+	xim_msg_t hdr;
+
+	char *locale;
+} xim_msg_open_t;
+
+typedef struct {
+	xim_msg_t hdr;
+
+	int id;
+	const attr_t *im_attrs;
+	const attr_t *ic_attrs;
+} xim_msg_open_reply_t;
 
 int xim_msg_new(xim_msg_t **dst, xim_msg_type_t type);
 int xim_msg_decode(xim_msg_t **dst, const uint8_t *src, const size_t src_len);
