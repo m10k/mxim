@@ -69,6 +69,19 @@ struct XIM_OPEN_REPLY {
 	/* LISTofXICATTR */
 };
 
+struct XIM_QUERY_EXTENSION {
+	uint16_t im;
+	uint16_t exts_len;
+	char exts[];
+	/* pad */
+};
+
+struct XIM_QUERY_EXTENSION_REPLY {
+	uint16_t im;
+	uint16_t exts_len;
+	uint8_t exts[];
+};
+
 static const struct {
 	xim_msg_type_t type;
 	char *name;
@@ -93,6 +106,16 @@ static const struct {
 		.type = XIM_OPEN_REPLY,
 		.name = "XIM_OPEN_REPLY",
 		.size = sizeof(xim_msg_open_reply_t)
+	},
+	[XIM_QUERY_EXTENSION] = {
+		.type = XIM_QUERY_EXTENSION,
+		.name = "XIM_QUERY_EXTENSION",
+		.size = sizeof(xim_msg_query_extension_t)
+	},
+	[XIM_QUERY_EXTENSION_REPLY] = {
+		.type = XIM_QUERY_EXTENSION_REPLY,
+		.name = "XIM_QUERY_EXTENSION_REPLY",
+		.size = sizeof(xim_msg_query_extension_reply_t)
 	}
 };
 
@@ -166,6 +189,54 @@ static int decode_XIM_OPEN(xim_msg_t **dst, const struct XIM_OPEN *src, const si
 	return padded_len;
 }
 
+static int decode_XIM_QUERY_EXTENSION(xim_msg_t **dst, const struct XIM_QUERY_EXTENSION *src,
+                                      const size_t src_len)
+{
+	xim_msg_query_extension_t *msg;
+	int computed_len;
+	int padding_len;
+	int padded_len;
+	int parsed_len;
+
+	computed_len = sizeof(*src) + src->exts_len;
+	padding_len = PAD(computed_len);
+	padded_len = computed_len + padding_len;
+
+	if (padded_len > src_len) {
+		return -EBADMSG;
+	}
+
+	if (!(msg = calloc(1, sizeof(*msg)))) {
+		return -ENOMEM;
+	}
+
+	msg->im = src->im;
+
+	for (parsed_len = sizeof(*src); parsed_len < computed_len; ) {
+		char **new_exts;
+		char *ext;
+		int ext_len;
+
+		if ((ext_len = decode_STR(&ext, (uint8_t*)src + parsed_len, src_len - parsed_len)) < 0) {
+			free(msg);
+			return -EBADMSG;
+		}
+
+		if (!(new_exts = realloc(msg->exts, sizeof(char*) * msg->num_exts + 1))) {
+			free(msg);
+			return -ENOMEM;
+		}
+
+		new_exts[msg->num_exts++] = ext;
+		msg->exts = new_exts;
+
+	        parsed_len += ext_len;
+	}
+
+	*dst = (xim_msg_t*)msg;
+	return parsed_len + padding_len;
+}
+
 int xim_msg_decode(xim_msg_t **dst, const uint8_t *src, const size_t src_len)
 {
 	struct XIM_PACKET *hdr;
@@ -189,6 +260,12 @@ int xim_msg_decode(xim_msg_t **dst, const uint8_t *src, const size_t src_len)
 			fprintf(stderr, "Decoding XIM_OPEN\n");
 			err = decode_XIM_OPEN(&msg, (struct XIM_OPEN*)(hdr + 1),
 			                      src_len - sizeof(*hdr));
+			break;
+
+		case XIM_QUERY_EXTENSION:
+			fprintf(stderr, "Decoding XIM_QUERY_EXTENSION\n");
+			err = decode_XIM_QUERY_EXTENSION(&msg, (struct XIM_QUERY_EXTENSION*)(hdr + 1),
+			                                 src_len - sizeof(*hdr));
 			break;
 
 		default:
@@ -330,6 +407,42 @@ static int encode_XIM_OPEN_REPLY(xim_msg_open_reply_t *src, uint8_t *dst, const 
 	return encoded_len;
 }
 
+static int encode_XIM_QUERY_EXTENSION_REPLY(xim_msg_query_extension_reply_t *src,
+                                            uint8_t *dst, const size_t dst_size)
+{
+	struct XIM_QUERY_EXTENSION_REPLY *raw;
+	int len_exts;
+	int i;
+
+	if (!src || !dst) {
+		return -EINVAL;
+	}
+
+	if (dst_size < sizeof(*raw)) {
+		return -ENOMEM;
+	}
+
+	raw = (struct XIM_QUERY_EXTENSION_REPLY*)dst;
+	raw->im = src->im;
+	len_exts = 0;
+
+	if (src->exts) {
+		for (i = 0; src->exts[i].name; i++) {
+			int ext_len;
+
+			if ((ext_len = encode_EXT(&src->exts[i], raw->exts + len_exts,
+			                          dst_size - sizeof(*raw) - len_exts)) < 0) {
+				return ext_len;
+			}
+
+			len_exts += ext_len;
+		}
+	}
+	raw->exts_len = len_exts;
+
+	return len_exts + sizeof(*raw);
+}
+
 int xim_msg_encode(xim_msg_t *src, uint8_t *dst, const size_t dst_size)
 {
 	struct XIM_PACKET *hdr;
@@ -359,6 +472,12 @@ int xim_msg_encode(xim_msg_t *src, uint8_t *dst, const size_t dst_size)
 		payload_len = encode_XIM_OPEN_REPLY((xim_msg_open_reply_t*)src,
 		                                    (uint8_t*)(hdr + 1),
 		                                    dst_size - sizeof(*hdr));
+		break;
+
+	case XIM_QUERY_EXTENSION_REPLY:
+		payload_len = encode_XIM_QUERY_EXTENSION_REPLY((xim_msg_query_extension_reply_t*)src,
+		                                               (uint8_t*)(hdr + 1),
+		                                               dst_size - sizeof(*hdr));
 		break;
 
 	default:

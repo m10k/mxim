@@ -133,6 +133,21 @@ typedef struct {
 	const attr_t *ic_attrs;
 } xim_msg_open_reply_t;
 
+typedef struct {
+	xim_msg_t hdr;
+
+	int im;
+	int num_exts;
+	char **exts;
+} xim_msg_query_extension_t;
+
+typedef struct {
+	xim_msg_t hdr;
+
+	int im;
+	const ext_t *exts;
+} xim_msg_query_extension_reply_t;
+
 int xim_msg_new(xim_msg_t **dst, xim_msg_type_t type);
 int xim_msg_decode(xim_msg_t **dst, const uint8_t *src, const size_t src_len);
 int xim_msg_encode(xim_msg_t *src, uint8_t *dst, const size_t dst_size);
