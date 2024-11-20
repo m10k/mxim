@@ -42,6 +42,12 @@ struct XIMATTRIBUTE {
 	uint8_t data[];
 } __attribute__((packed));
 
+struct XIMEXT {
+	uint8_t major;
+	uint8_t minor;
+	uint8_t name[];
+} __attribute__((packed));
+
 int decode_STRING(char **dst, const uint8_t *src, const size_t src_len)
 {
 	struct XIMSTRING *raw;
@@ -249,4 +255,31 @@ int encode_ATTRIBUTE(const attr_value_t *src, uint8_t *dst, const size_t dst_siz
 	memset(raw->data + src->len, 0, padding_len);
 
 	return (int)padded_len;
+}
+
+int encode_EXT(const ext_t *src, uint8_t *dst, const size_t dst_size)
+{
+	struct XIMEXT *raw;
+	size_t raw_len;
+	size_t padding_len;
+	size_t padded_len;
+	int name_len;
+
+	raw_len = sizeof(*raw) + strlen(src->name) + sizeof(uint16_t);
+	padding_len = PAD(raw_len);
+	padded_len = raw_len + padding_len;
+
+	if (dst_size < padded_len) {
+		return -ENOMEM;
+	}
+
+	raw = (struct XIMEXT*)dst;
+	raw->major = src->major;
+	raw->minor = src->minor;
+
+	if ((name_len = encode_STRING(src->name, raw->name, dst_size - sizeof(*raw))) < 0) {
+		return name_len;
+	}
+
+	return sizeof(*raw) + name_len;
 }

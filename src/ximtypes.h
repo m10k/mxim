@@ -45,6 +45,12 @@ typedef struct {
 	void *data;
 } attr_value_t;
 
+typedef struct {
+	uint8_t major;
+	uint8_t minor;
+	char *name;
+} ext_t;
+
 int decode_STRING(char **dst, const uint8_t *src, const size_t src_len);
 int decode_STR(char **dst, const uint8_t *src, const size_t src_len);
 int decode_ATTR(attr_t **attr, const uint8_t *src, const size_t src_len);
@@ -52,6 +58,7 @@ int decode_ATTRIBUTE(attr_value_t **val, const uint8_t *src, const size_t src_le
 int encode_STRING(const char *src, uint8_t *dst, const size_t dst_size);
 int encode_ATTR(const attr_t *src, uint8_t *dst, const size_t dst_size);
 int encode_ATTRIBUTE(const attr_value_t *src, uint8_t *dst, const size_t dst_size);
+int encode_EXT(const ext_t *src, uint8_t *dst, const size_t dst_size);
 
 #define decode_ENCODINGINFO decode_STRING
 
