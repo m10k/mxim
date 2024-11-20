@@ -32,6 +32,8 @@ struct xim_client {
 	fd_t *fd;
 	uint8_t rxbuf[1024];
 	size_t rxbuf_len;
+
+	input_method_t *im;
 };
 
 static void handle_connect_msg(xim_client_t *client, xim_msg_connect_t *msg)
@@ -93,6 +95,8 @@ static void handle_open_msg(xim_client_t *client, xim_msg_open_t *msg)
 			if (err < 0) {
 				/* FIXME: handle error */
 				fprintf(stderr, "fd_write: %s\n", strerror(-err));
+			} else {
+				client->im = im;
 			}
 		}
 	}
