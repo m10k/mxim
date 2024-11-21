@@ -82,6 +82,22 @@ struct XIM_QUERY_EXTENSION_REPLY {
 	uint8_t exts[];
 };
 
+struct XIM_ENCODING_NEGOTIATION {
+	uint16_t im;
+	uint8_t encodings[];
+	/* pad */
+	/* length of encoding details */
+	/* 2 bytes padding */
+	/* list of encoding details */
+};
+
+struct XIM_ENCODING_NEGOTIATION_REPLY {
+	uint16_t im;
+	uint16_t category;
+	int16_t encoding;
+	uint16_t unused;
+};
+
 static const struct {
 	xim_msg_type_t type;
 	char *name;
@@ -116,6 +132,16 @@ static const struct {
 		.type = XIM_QUERY_EXTENSION_REPLY,
 		.name = "XIM_QUERY_EXTENSION_REPLY",
 		.size = sizeof(xim_msg_query_extension_reply_t)
+	},
+	[XIM_ENCODING_NEGOTIATION] = {
+		.type = XIM_ENCODING_NEGOTIATION,
+		.name = "XIM_ENCODING_NEGOTIATION",
+		.size = sizeof(xim_msg_encoding_negotiation_t)
+	},
+	[XIM_ENCODING_NEGOTIATION_REPLY] = {
+		.type = XIM_ENCODING_NEGOTIATION_REPLY,
+		.name = "XIM_ENCODING_NEGOTIATION_REPLY",
+		.size = sizeof(xim_msg_encoding_negotiation_reply_t)
 	}
 };
 
@@ -237,6 +263,115 @@ static int decode_XIM_QUERY_EXTENSION(xim_msg_t **dst, const struct XIM_QUERY_EX
 	return parsed_len + padding_len;
 }
 
+struct LISTofSTR {
+	uint16_t len;
+	uint8_t strings[];
+} __attribute__((packed));
+
+static int count_strings(const struct LISTofSTR *list, const size_t list_len)
+{
+	size_t offset;
+	int count;
+
+	if (list_len < sizeof(*list)) {
+		return -ENOMSG;
+	}
+
+	if (list_len < (sizeof(*list) + list->len)) {
+		return -EBADMSG;
+	}
+
+	count = 0;
+	offset = 0;
+
+	while (offset < list->len) {
+		count++;
+		offset += list->strings[offset] + 1;
+	}
+
+	return count;
+}
+
+static int decode_LISTofSTR(char ***dst, const void *src, const size_t src_len)
+{
+	const struct LISTofSTR *raw;
+	int num_strings;
+	char **strings;
+	int parsed_len;
+	int i;
+
+	if (src_len < sizeof(*raw)) {
+		return -ENOMSG;
+	}
+
+	raw = src;
+	if ((num_strings = count_strings(raw, src_len)) < 0) {
+		return num_strings;
+	}
+
+	if (!(strings = calloc(num_strings + 1, sizeof(char*)))) {
+		return -ENOMEM;
+	}
+
+	for (i = 0, parsed_len = 0; i < num_strings; i++) {
+		int str_len;
+
+		if ((str_len = decode_STR(&strings[i], raw->strings + parsed_len,
+		                          src_len - sizeof(*raw) - parsed_len)) < 0) {
+			break;
+		}
+
+		parsed_len += str_len;
+	}
+
+	if (i != num_strings) {
+		/* did not decode all strings */
+		while (i >= 0) {
+			free(strings[i]);
+		}
+		free(strings);
+
+		return -EBADMSG;
+	}
+
+	*dst = strings;
+	return parsed_len + sizeof(*raw);
+}
+
+static int decode_XIM_ENCODING_NEGOTIATION(xim_msg_t **dst, const struct XIM_ENCODING_NEGOTIATION *src,
+                                           const size_t src_len)
+{
+	xim_msg_encoding_negotiation_t *msg;
+	char **encodings;
+	int parsed_len;
+	uint16_t details_len;
+
+	if (src_len < sizeof(*src)) {
+		return -ENOMSG;
+	}
+
+	if (!(msg = calloc(1, sizeof(*msg)))) {
+		return -ENOMEM;
+	}
+
+	if ((parsed_len = decode_LISTofSTR(&encodings, src->encodings,
+	                                   src_len - sizeof(*src))) < 0) {
+		return parsed_len;
+	}
+
+	msg->im = src->im;
+	msg->encodings = encodings;
+	parsed_len += PAD(parsed_len);
+	details_len = *(uint16_t*)(src->encodings + parsed_len);
+	parsed_len += 4; /* skip over details size and its padding */
+	parsed_len += details_len; /* skip over details */
+
+	/* FIXME: Implement parsing of details? */
+
+	*dst = (xim_msg_t*)msg;
+	return parsed_len;
+}
+
 int xim_msg_decode(xim_msg_t **dst, const uint8_t *src, const size_t src_len)
 {
 	struct XIM_PACKET *hdr;
@@ -266,6 +401,13 @@ int xim_msg_decode(xim_msg_t **dst, const uint8_t *src, const size_t src_len)
 			fprintf(stderr, "Decoding XIM_QUERY_EXTENSION\n");
 			err = decode_XIM_QUERY_EXTENSION(&msg, (struct XIM_QUERY_EXTENSION*)(hdr + 1),
 			                                 src_len - sizeof(*hdr));
+			break;
+
+		case XIM_ENCODING_NEGOTIATION:
+			fprintf(stderr, "Decoding XIM_ENCODING_NEGOTIATION\n");
+			err = decode_XIM_ENCODING_NEGOTIATION(&msg,
+			                                      (struct XIM_ENCODING_NEGOTIATION*)(hdr + 1),
+			                                      src_len - sizeof(*hdr));
 			break;
 
 		default:
@@ -443,6 +585,28 @@ static int encode_XIM_QUERY_EXTENSION_REPLY(xim_msg_query_extension_reply_t *src
 	return len_exts + sizeof(*raw);
 }
 
+static int encode_XIM_ENCODING_NEGOTIATION_REPLY(xim_msg_encoding_negotiation_reply_t *src,
+                                                 uint8_t *dst, const size_t dst_size)
+{
+	struct XIM_ENCODING_NEGOTIATION_REPLY *raw;
+
+	if (!src || !dst) {
+		return -EINVAL;
+	}
+
+	if (dst_size < sizeof(*raw)) {
+		return -ENOMEM;
+	}
+
+	raw = (struct XIM_ENCODING_NEGOTIATION_REPLY*)dst;
+	raw->im = src->im;
+	raw->category = src->category;
+	raw->encoding = src->encoding;
+	raw->unused = 0;
+
+	return sizeof(*raw);
+}
+
 int xim_msg_encode(xim_msg_t *src, uint8_t *dst, const size_t dst_size)
 {
 	struct XIM_PACKET *hdr;
@@ -478,6 +642,12 @@ int xim_msg_encode(xim_msg_t *src, uint8_t *dst, const size_t dst_size)
 		payload_len = encode_XIM_QUERY_EXTENSION_REPLY((xim_msg_query_extension_reply_t*)src,
 		                                               (uint8_t*)(hdr + 1),
 		                                               dst_size - sizeof(*hdr));
+		break;
+
+	case XIM_ENCODING_NEGOTIATION_REPLY:
+		payload_len = encode_XIM_ENCODING_NEGOTIATION_REPLY((xim_msg_encoding_negotiation_reply_t*)src,
+		                                                    (uint8_t*)(hdr + 1),
+		                                                    dst_size - sizeof(*hdr));
 		break;
 
 	default:
