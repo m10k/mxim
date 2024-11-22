@@ -162,6 +162,7 @@ static int decode_XIM_CONNECT(xim_msg_t **dst, const struct XIM_CONNECT *src, co
 		return -ENOMEM;
 	}
 
+	msg->byte_order = src->byte_order;
 	msg->client_ver.major = src->client_ver.major;
 	msg->client_ver.minor = src->client_ver.minor;
 
