@@ -37,8 +37,12 @@ struct input_method {
 
 	/* Attributes of the input method */
 	const attr_t *im_attrs;
+	attr_value_t **im_values;
+
 	/* The attributes and default values of input contexts */
 	const attr_t *ic_attrs;
+	attr_value_t **ic_values;
+
 	/* The locale that is supported by the IM. NULL for any */
 	char *locale;
 
