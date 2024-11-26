@@ -182,6 +182,45 @@ static void handle_encoding_negotiation_msg(xim_client_t *client, xim_msg_encodi
 	return;
 }
 
+static void handle_get_im_values_msg(xim_client_t *client, xim_msg_get_im_values_t *msg)
+{
+	xim_msg_get_im_values_reply_t reply;
+	uint8_t buf[1024];
+	int buf_len;
+	int i;
+
+	if (!client || !msg) {
+		return;
+	}
+
+	memset(&reply, 0, sizeof(reply));
+	reply.hdr.type = XIM_GET_IM_VALUES_REPLY;
+	reply.hdr.subtype = 0;
+	reply.im = msg->im;
+	reply.num_values = 0;
+
+	if (!(reply.values = calloc(msg->num_attrs, sizeof(attr_value_t*)))) {
+		return;
+	}
+
+	for (i = 0; i < msg->num_attrs; i++) {
+		/* FIXME: check if index is valid */
+		reply.values[i] = client->im->im_values[1 + i];
+		reply.num_values++;
+	}
+
+	if ((buf_len = xim_msg_encode((xim_msg_t*)&reply, buf, sizeof(buf))) > 0) {
+		int err;
+
+		if ((err = fd_write(client->fd, buf, buf_len)) < 0) {
+			fprintf(stderr, "fd_write: %s\n", strerror(-err));
+		}
+	}
+
+	free(reply.values);
+	return;
+}
+
 static void _xim_client_handle_msg(xim_client_t *client, xim_msg_t *msg)
 {
 	fprintf(stderr, "Handling message\n");
@@ -227,6 +266,11 @@ static void _xim_client_handle_msg(xim_client_t *client, xim_msg_t *msg)
 			}
 		}
 		handle_encoding_negotiation_msg(client, (xim_msg_encoding_negotiation_t*)msg);
+		break;
+
+	case XIM_GET_IM_VALUES:
+		fprintf(stderr, "XIM_GET_IM_VALUES\n");
+		handle_get_im_values_msg(client, (xim_msg_get_im_values_t*)msg);
 		break;
 
 	default:
