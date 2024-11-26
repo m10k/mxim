@@ -134,6 +134,54 @@ static void handle_query_extension_msg(xim_client_t *client, xim_msg_query_exten
 	return;
 }
 
+static void select_encoding(xim_client_t *client, int encoding)
+{
+	xim_msg_encoding_negotiation_reply_t reply;
+	uint8_t buf[1024];
+	int buf_len;
+	int err;
+
+	reply.hdr.type = XIM_ENCODING_NEGOTIATION_REPLY;
+	reply.hdr.subtype = 0;
+	reply.im = client->im->id;
+	reply.category = 1;
+	reply.encoding = encoding;
+
+	if ((buf_len = xim_msg_encode((xim_msg_t*)&reply, buf, sizeof(buf))) > 0) {
+		if ((err = fd_write(client->fd, buf, buf_len)) < 0) {
+			fprintf(stderr, "fd_write: %s\n", strerror(-err));
+		}
+	}
+}
+
+static void handle_encoding_negotiation_msg(xim_client_t *client, xim_msg_encoding_negotiation_t *msg)
+{
+	int i;
+
+	if (!client || !client->im || !client->im->encodings || !msg || !msg->encodings) {
+		return;
+	}
+
+	for (i = 0; client->im->encodings[i]; i++) {
+		int j;
+
+		for (j = 0; msg->encodings[j]; j++) {
+			if (strcmp(client->im->encodings[i], msg->encodings[j]) == 0) {
+				/* XIM_ENCODING_NEGOTIATION_REPLY */
+				fprintf(stderr, "Client supports %s encoding\n", msg->encodings[j]);
+				select_encoding(client, j);
+				return;
+			}
+		}
+
+		fprintf(stderr, "Encoding %s not supported by client\n", client->im->encodings[i]);
+	}
+
+	/* XIM_ERROR */
+
+	return;
+}
+
 static void _xim_client_handle_msg(xim_client_t *client, xim_msg_t *msg)
 {
 	fprintf(stderr, "Handling message\n");
@@ -166,6 +214,19 @@ static void _xim_client_handle_msg(xim_client_t *client, xim_msg_t *msg)
 			}
 		}
 		handle_query_extension_msg(client, (xim_msg_query_extension_t*)msg);
+		break;
+
+	case XIM_ENCODING_NEGOTIATION:
+		fprintf(stderr, "XIM_ENCODING_NEGOTIATION received\n");
+		if (((xim_msg_encoding_negotiation_t*)msg)->encodings) {
+			int i;
+
+			for (i = 0; ((xim_msg_encoding_negotiation_t*)msg)->encodings[i]; i++) {
+				fprintf(stderr, " enc[%d] -> %s\n", i,
+				        ((xim_msg_encoding_negotiation_t*)msg)->encodings[i]);
+			}
+		}
+		handle_encoding_negotiation_msg(client, (xim_msg_encoding_negotiation_t*)msg);
 		break;
 
 	default:
