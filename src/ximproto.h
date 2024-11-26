@@ -164,6 +164,22 @@ typedef struct {
 	int encoding;
 } xim_msg_encoding_negotiation_reply_t;
 
+typedef struct {
+	xim_msg_t hdr;
+
+	int im;
+	int num_attrs;
+	int *attrs;
+} xim_msg_get_im_values_t;
+
+typedef struct {
+	xim_msg_t hdr;
+
+	int im;
+	int num_values;
+	attr_value_t **values;
+} xim_msg_get_im_values_reply_t;
+
 int xim_msg_new(xim_msg_t **dst, xim_msg_type_t type);
 int xim_msg_decode(xim_msg_t **dst, const uint8_t *src, const size_t src_len);
 int xim_msg_encode(xim_msg_t *src, uint8_t *dst, const size_t dst_size);
