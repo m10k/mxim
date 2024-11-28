@@ -283,3 +283,63 @@ int encode_EXT(const ext_t *src, uint8_t *dst, const size_t dst_size)
 
 	return sizeof(*raw) + name_len;
 }
+
+static int _count_attributes(const uint8_t *list, const size_t list_len)
+{
+	struct XIMATTRIBUTE *attribute;
+	int num_attributes;
+	size_t offset;
+
+	offset = 0;
+	num_attributes = 0;
+
+	while (offset < list_len) {
+		attribute = (struct XIMATTRIBUTE*)(list + offset);
+		num_attributes++;
+		offset += sizeof(*attribute) + attribute->data_len;
+	}
+
+	return num_attributes;
+}
+
+int decode_LISTofATTRIBUTE(attr_value_t ***dst, const void *src, const size_t src_len)
+{
+	attr_value_t **attributes;
+	int num_attributes;
+	int parsed_len;
+	int i;
+
+	if ((num_attributes = _count_attributes(src, src_len)) < 0) {
+		return num_attributes;
+	}
+
+	if (!(attributes = calloc(num_attributes + 1, sizeof(attr_value_t*)))) {
+		return -ENOMEM;
+	}
+
+	for (i = 0, parsed_len = 0; i < num_attributes; i++) {
+		int attribute_len;
+
+		if ((attribute_len = decode_ATTRIBUTE(&attributes[i],
+		                                      src + parsed_len,
+		                                      src_len - parsed_len)) < 0) {
+			break;
+		}
+
+		parsed_len += attribute_len;
+	}
+
+	if (i != num_attributes) {
+		/* did not decode all attributes */
+
+		while (i >= 0) {
+			free(attributes[i--]);
+		}
+		free(attributes);
+
+		return -EBADMSG;
+	}
+
+	*dst = attributes;
+	return parsed_len;
+}
