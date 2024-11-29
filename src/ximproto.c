@@ -121,6 +121,20 @@ struct XIM_CREATE_IC_REPLY {
 	uint16_t ic;
 };
 
+struct XIM_GET_IC_VALUES {
+	uint16_t im;
+	uint16_t ic;
+	uint16_t len_attrs;
+	uint16_t attrs[];
+};
+
+struct XIM_GET_IC_VALUES_REPLY {
+	uint16_t im;
+	uint16_t ic;
+	uint16_t len_values;
+	uint8_t values[];
+};
+
 static const struct {
 	xim_msg_type_t type;
 	char *name;
@@ -180,6 +194,16 @@ static const struct {
 		.type = XIM_CREATE_IC_REPLY,
 		.name = "XIM_CREATE_IC_REPLY",
 		.size = sizeof(xim_msg_create_ic_reply_t)
+	},
+	[XIM_GET_IC_VALUES] = {
+		.type = XIM_GET_IC_VALUES,
+		.name = "XIM_GET_IC_VALUES",
+		.size = sizeof(xim_msg_get_ic_values_t)
+	},
+	[XIM_GET_IC_VALUES_REPLY] = {
+		.type = XIM_GET_IC_VALUES_REPLY,
+		.name = "XIM_GET_IC_VALUES_REPLY",
+		.size = sizeof(xim_msg_get_ic_values_reply_t)
 	}
 };
 
@@ -451,6 +475,46 @@ static int decode_XIM_GET_IM_VALUES(xim_msg_t **dst, const struct XIM_GET_IM_VAL
 	return padded_len;
 }
 
+static int decode_XIM_GET_IC_VALUES(xim_msg_t **dst, const struct XIM_GET_IC_VALUES *src,
+                                    const size_t src_len)
+{
+	xim_msg_get_ic_values_t *msg;
+	int data_len;
+	int padded_len;
+	int i;
+
+	if (src_len < sizeof(*src)) {
+		return -ENOMSG;
+	}
+
+	data_len = sizeof(*src) + src->len_attrs;
+	padded_len = data_len + PAD(data_len);
+
+	if (src_len < data_len) {
+		return -EBADMSG;
+	}
+
+	if (!(msg = calloc(1, sizeof(*msg)))) {
+		return -ENOMEM;
+	}
+
+	msg->im = src->im;
+	msg->ic = src->ic;
+	msg->num_attrs = src->len_attrs / sizeof(uint16_t);
+
+	if (!(msg->attrs = calloc(msg->num_attrs, sizeof(int)))) {
+		free(msg);
+		return -ENOMEM;
+	}
+
+	for (i = 0; i < msg->num_attrs; i++) {
+		msg->attrs[i] = src->attrs[i];
+	}
+
+	*dst = (xim_msg_t*)msg;
+	return padded_len;
+}
+
 static int decode_XIM_CREATE_IC(xim_msg_t **dst, const struct XIM_CREATE_IC *src,
                                 const size_t src_len)
 {
@@ -521,6 +585,12 @@ int xim_msg_decode(xim_msg_t **dst, const uint8_t *src, const size_t src_len)
 		case XIM_GET_IM_VALUES:
 			fprintf(stderr, "Decoding XIM_GET_IM_VALUES\n");
 			err = decode_XIM_GET_IM_VALUES(&msg, (struct XIM_GET_IM_VALUES*)(hdr + 1),
+			                               src_len - sizeof(*hdr));
+			break;
+
+		case XIM_GET_IC_VALUES:
+			fprintf(stderr, "Decoding XIM_GET_IC_VALUES\n");
+			err = decode_XIM_GET_IC_VALUES(&msg, (struct XIM_GET_IC_VALUES*)(hdr + 1),
 			                               src_len - sizeof(*hdr));
 			break;
 
@@ -775,6 +845,55 @@ static int encode_XIM_GET_IM_VALUES_REPLY(xim_msg_get_im_values_reply_t *src,
 
 	return encoded_len;
 }
+static int encode_XIM_GET_IC_VALUES_REPLY(xim_msg_get_ic_values_reply_t *src,
+                                          uint8_t *dst, const size_t dst_size)
+{
+	struct XIM_GET_IC_VALUES_REPLY *raw;
+	int required_size;
+	int encoded_len;
+	int i;
+
+	if (!src || !dst) {
+		return -EINVAL;
+	}
+
+	if (!src->values && src->num_values > 0) {
+		return -EBADMSG;
+	}
+
+	required_size = sizeof(*raw);
+	for (i = 0; i < src->num_values; i++) {
+		int value_len;
+
+		value_len = sizeof(uint16_t) + sizeof(uint16_t) + src->values[i]->len;
+		required_size += value_len + PAD(value_len);
+	}
+
+	if (dst_size < required_size) {
+		return -EMSGSIZE;
+	}
+
+	raw = (struct XIM_GET_IC_VALUES_REPLY*)dst;
+	raw->im = src->im;
+	raw->ic = src->ic;
+	encoded_len = sizeof(*raw);
+	for (i = 0; i < src->num_values; i++) {
+		int value_len;
+
+		value_len = encode_ATTRIBUTE(src->values[i], dst + encoded_len,
+		                             dst_size - encoded_len);
+
+		if (value_len < 0) {
+			return value_len;
+		}
+
+		encoded_len += value_len;
+	}
+
+	raw->len_values = encoded_len - sizeof(*raw);
+
+	return encoded_len;
+}
 
 static int encode_XIM_CREATE_IC_REPLY(xim_msg_create_ic_reply_t *src, uint8_t *dst, const size_t dst_size)
 {
@@ -840,6 +959,12 @@ int xim_msg_encode(xim_msg_t *src, uint8_t *dst, const size_t dst_size)
 
 	case XIM_GET_IM_VALUES_REPLY:
 		payload_len = encode_XIM_GET_IM_VALUES_REPLY((xim_msg_get_im_values_reply_t*)src,
+		                                             (uint8_t*)(hdr + 1),
+		                                             dst_size - sizeof(*hdr));
+		break;
+
+	case XIM_GET_IC_VALUES_REPLY:
+		payload_len = encode_XIM_GET_IC_VALUES_REPLY((xim_msg_get_ic_values_reply_t*)src,
 		                                             (uint8_t*)(hdr + 1),
 		                                             dst_size - sizeof(*hdr));
 		break;
