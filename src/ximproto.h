@@ -204,6 +204,19 @@ typedef struct {
 	xim_msg_t hdr;
 
 	int im;
+	attr_value_t **values;
+} xim_msg_set_im_values_t;
+
+typedef struct {
+	xim_msg_t hdr;
+
+	int im;
+} xim_msg_set_im_values_reply_t;
+
+typedef struct {
+	xim_msg_t hdr;
+
+	int im;
 	int num_values;
 	attr_value_t **values;
 } xim_msg_create_ic_t;
