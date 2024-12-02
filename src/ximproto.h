@@ -88,6 +88,26 @@ typedef enum {
 	XIM_PREEDITSTATE               = 82
 } xim_msg_type_t;
 
+typedef enum {
+	XIM_ERROR_BAD_ALLOC            =   1,
+	XIM_ERROR_BAD_STYLE            =   2,
+	XIM_ERROR_BAD_CLIENT_WINDOW    =   3,
+	XIM_ERROR_BAD_FOCUS_WINDOW     =   4,
+	XIM_ERROR_BAD_AREA             =   5,
+	XIM_ERROR_BAD_SPOT_LOCATION    =   6,
+	XIM_ERROR_BAD_COLORMAP         =   7,
+	XIM_ERROR_BAD_ATOM             =   8,
+	XIM_ERROR_BAD_PIXEL            =   9,
+	XIM_ERROR_BAD_PIXMAP           =  10,
+	XIM_ERROR_BAD_NAME             =  11,
+	XIM_ERROR_BAD_CURSOR           =  12,
+	XIM_ERROR_BAD_PROTOCOL         =  13,
+	XIM_ERROR_BAD_FOREROUND        =  14,
+	XIM_ERROR_BAD_BACKGROUND       =  15,
+	XIM_ERROR_LOCALE_NOT_SUPPORTED =  16,
+	XIM_ERROR_BAD_SOMETHING        = 999
+} xim_error_t;
+
 typedef struct {
 	xim_msg_type_t type;
 	uint8_t subtype;
@@ -212,6 +232,18 @@ typedef struct {
 	int num_values;
 	attr_value_t **values;
 } xim_msg_get_ic_values_reply_t;
+
+typedef struct {
+	xim_msg_t hdr;
+
+	int im;
+	int ic;
+	unsigned flags;
+	xim_error_t error;
+	size_t detail_len;
+	unsigned detail_type;
+	void *detail;
+} xim_msg_error_t;
 
 int xim_msg_new(xim_msg_t **dst, xim_msg_type_t type);
 int xim_msg_decode(xim_msg_t **dst, const uint8_t *src, const size_t src_len);

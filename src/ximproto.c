@@ -33,6 +33,16 @@ struct XIM_PACKET {
 	uint16_t length;
 } __attribute__((packed));
 
+struct XIM_ERROR {
+	uint16_t im;
+	uint16_t ic;
+	uint16_t flag;
+	uint16_t error_code;
+	uint16_t detail_len;
+	uint16_t detail_type;
+	uint8_t detail[];
+};
+
 struct XIM_CONNECT {
 	uint8_t byte_order;
 	uint8_t unused;
@@ -140,6 +150,11 @@ static const struct {
 	char *name;
 	size_t size;
 } _msg_info[] = {
+	[XIM_ERROR] = {
+		.type = XIM_ERROR,
+		.name = "XIM_ERROR",
+		.size = sizeof(xim_msg_error_t)
+	},
 	[XIM_CONNECT] = {
 		.type = XIM_CONNECT,
 		.name = "XIM_CONNECT",
@@ -211,6 +226,44 @@ static int need_more_data(struct XIM_PACKET *src, const size_t src_len)
 {
 	return (src_len < sizeof(*src) || /* check if header is there */
 	        src_len < (sizeof(*src) + src->length * 4)); /* check if payload is there */
+}
+
+static int decode_XIM_ERROR(xim_msg_t **dst, const struct XIM_ERROR *src, const size_t src_len)
+{
+	xim_msg_error_t *msg;
+	int parsed_len;
+	int padded_len;
+
+	if (src_len < sizeof(*src)) {
+		return -ENOMSG;
+	}
+
+	if (src_len < (sizeof(*msg) + src->detail_len)) {
+		return -EBADMSG;
+	}
+
+	if (!(msg = calloc(1, sizeof(*msg)))) {
+		return -ENOMEM;
+	}
+
+	if (!(msg->detail = malloc(src->detail_len))) {
+		free(msg);
+		return -ENOMEM;
+	}
+
+	msg->im = src->im;
+	msg->ic = src->ic;
+	msg->flags = src->flag;
+	msg->error = src->error_code;
+	msg->detail_len = src->detail_len;
+	msg->detail_type = src->detail_type;
+	parsed_len = sizeof(*src) + src->detail_len;
+	padded_len = parsed_len + PAD(parsed_len);
+
+	memmove(msg->detail, src->detail, msg->detail_len);
+
+	*dst = (xim_msg_t*)msg;
+	return padded_len;
 }
 
 static int decode_XIM_CONNECT(xim_msg_t **dst, const struct XIM_CONNECT *src, const size_t src_len)
@@ -557,6 +610,12 @@ int xim_msg_decode(xim_msg_t **dst, const uint8_t *src, const size_t src_len)
 		err = -EAGAIN;
 	} else {
 		switch (hdr->opcode_major) {
+		case XIM_ERROR:
+			fprintf(stderr, "Decoding XIM_ERROR\n");
+			err = decode_XIM_ERROR(&msg, (struct XIM_ERROR*)(hdr + 1),
+			                       src_len - sizeof(*hdr));
+			break;
+
 		case XIM_CONNECT:
 			fprintf(stderr, "Decoding XIM_CONNECT\n");
 			err = decode_XIM_CONNECT(&msg, (struct XIM_CONNECT*)(hdr + 1),
@@ -637,6 +696,38 @@ int xim_msg_new(xim_msg_t **msg, const xim_msg_type_t type)
 
 	*msg = m;
 	return 0;
+}
+
+static int encode_XIM_ERROR(xim_msg_error_t *src, uint8_t *dst, const size_t dst_size)
+{
+	struct XIM_ERROR *raw;
+	int data_len;
+	int padded_len;
+	int padding_len;
+
+	if (!src || !dst) {
+		return -EINVAL;
+	}
+
+	data_len = sizeof(*raw) + src->detail_len;
+	padding_len = PAD(data_len);
+	padded_len = data_len + padding_len;
+
+	if (dst_size < padded_len) {
+		return -EMSGSIZE;
+	}
+
+	raw = (struct XIM_ERROR*)dst;
+	raw->im = src->im;
+	raw->ic = src->ic;
+	raw->flag = src->flags;
+	raw->error_code = src->error;
+	raw->detail_len = src->detail_len;
+	raw->detail_type = src->detail_type;
+	memmove(raw->detail, src->detail, src->detail_len);
+	memset(raw->detail + src->detail_len, 0, padding_len);
+
+	return padded_len;
 }
 
 static int encode_XIM_CONNECT_REPLY(xim_msg_connect_reply_t *src, uint8_t *dst, const size_t dst_size)
@@ -933,6 +1024,12 @@ int xim_msg_encode(xim_msg_t *src, uint8_t *dst, const size_t dst_size)
 	payload_len = -1;
 
 	switch (src->type) {
+	case XIM_ERROR:
+		payload_len = encode_XIM_ERROR((xim_msg_error_t*)src,
+		                               (uint8_t*)(hdr + 1),
+		                               dst_size - sizeof(*hdr));
+		break;
+
 	case XIM_CONNECT_REPLY:
 		payload_len = encode_XIM_CONNECT_REPLY((xim_msg_connect_reply_t*)src,
 		                                       (uint8_t*)(hdr + 1),
