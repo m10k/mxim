@@ -36,11 +36,27 @@ struct xim_client {
 	input_method_t *im;
 };
 
+static int xim_client_send(xim_client_t *client, xim_msg_t *msg)
+{
+	uint8_t buf[1024];
+	int buf_len;
+	int err;
+
+	if ((buf_len = xim_msg_encode(msg, buf, sizeof(buf))) < 0) {
+		fprintf(stderr, "xim_msg_encode: %s\n", strerror(-buf_len));
+		return buf_len;
+	}
+
+	if ((err = fd_write(client->fd, buf, buf_len)) < 0) {
+		fprintf(stderr, "fd_write: %s\n", strerror(-err));
+	}
+
+	return err;
+}
+
 static void handle_connect_msg(xim_client_t *client, xim_msg_connect_t *msg)
 {
 	xim_msg_connect_reply_t *reply;
-	uint8_t buf[2048];
-	int buf_len;
 	int err;
 
 	/* FIXME: There is no need to dynamically allocate the reply */
@@ -53,15 +69,8 @@ static void handle_connect_msg(xim_client_t *client, xim_msg_connect_t *msg)
 	reply->server_ver.major = 1;
 	reply->server_ver.minor = 0;
 
-	fprintf(stderr, "Encoding reply\n");
-
-	if ((buf_len = xim_msg_encode((xim_msg_t*)reply, buf, sizeof(buf))) > 0) {
-		err = fd_write(client->fd, buf, buf_len);
-
-		if (err < 0) {
-			/* FIXME: handle error */
-			fprintf(stderr, "fd_write: %s\n", strerror(-err));
-		}
+	if ((err = xim_client_send(client, (xim_msg_t*)reply)) < 0) {
+		fprintf(stderr, "xim_client_send: %s\n", strerror(-err));
 	}
 
 	/* FIXME: Free reply */
@@ -72,8 +81,6 @@ static void handle_connect_msg(xim_client_t *client, xim_msg_connect_t *msg)
 static void handle_open_msg(xim_client_t *client, xim_msg_open_t *msg)
 {
 	input_method_t *im;
-	uint8_t buf[2048];
-	int buf_len;
 	int err;
 
 	if (!(im = input_method_for_locale(msg->locale))) {
@@ -89,15 +96,11 @@ static void handle_open_msg(xim_client_t *client, xim_msg_open_t *msg)
 		reply.im_attrs = im->im_attrs;
 		reply.ic_attrs = im->ic_attrs;
 
-		if ((buf_len = xim_msg_encode((xim_msg_t*)&reply, buf, sizeof(buf))) > 0) {
-			err = fd_write(client->fd, buf, buf_len);
+		client->im = im;
 
-			if (err < 0) {
-				/* FIXME: handle error */
-				fprintf(stderr, "fd_write: %s\n", strerror(-err));
-			} else {
-				client->im = im;
-			}
+		if ((err = xim_client_send(client, (xim_msg_t*)&reply)) < 0) {
+			fprintf(stderr, "xim_client_send: %s\n", strerror(-err));
+			/* FIXME: handle error */
 		}
 	}
 
@@ -106,11 +109,8 @@ static void handle_open_msg(xim_client_t *client, xim_msg_open_t *msg)
 
 static void handle_query_extension_msg(xim_client_t *client, xim_msg_query_extension_t *msg)
 {
-	uint8_t buf[2048];
-	int buf_len;
-	int err;
-
 	xim_msg_query_extension_reply_t reply;
+	int err;
 
 	if (!client->im) {
 		return;
@@ -121,14 +121,8 @@ static void handle_query_extension_msg(xim_client_t *client, xim_msg_query_exten
 	reply.im = client->im->id;
 	reply.exts = client->im->exts;
 
-	if ((buf_len = xim_msg_encode((xim_msg_t*)&reply, buf, sizeof(buf))) > 0) {
-		err = fd_write(client->fd, buf, buf_len);
-
-		if (err < 0) {
-			fprintf(stderr, "fd_write: %s\n", strerror(-err));
-		} else {
-
-		}
+	if ((err = xim_client_send(client, (xim_msg_t*)&reply)) < 0) {
+		fprintf(stderr, "xim_client_send: %s\n", strerror(-err));
 	}
 
 	return;
@@ -137,8 +131,6 @@ static void handle_query_extension_msg(xim_client_t *client, xim_msg_query_exten
 static void select_encoding(xim_client_t *client, int encoding)
 {
 	xim_msg_encoding_negotiation_reply_t reply;
-	uint8_t buf[1024];
-	int buf_len;
 	int err;
 
 	reply.hdr.type = XIM_ENCODING_NEGOTIATION_REPLY;
@@ -147,10 +139,8 @@ static void select_encoding(xim_client_t *client, int encoding)
 	reply.category = 1;
 	reply.encoding = encoding;
 
-	if ((buf_len = xim_msg_encode((xim_msg_t*)&reply, buf, sizeof(buf))) > 0) {
-		if ((err = fd_write(client->fd, buf, buf_len)) < 0) {
-			fprintf(stderr, "fd_write: %s\n", strerror(-err));
-		}
+	if ((err = xim_client_send(client, (xim_msg_t*)&reply)) < 0) {
+		fprintf(stderr, "xim_client_send: %s\n", strerror(-err));
 	}
 }
 
@@ -185,8 +175,7 @@ static void handle_encoding_negotiation_msg(xim_client_t *client, xim_msg_encodi
 static void handle_get_im_values_msg(xim_client_t *client, xim_msg_get_im_values_t *msg)
 {
 	xim_msg_get_im_values_reply_t reply;
-	uint8_t buf[1024];
-	int buf_len;
+	int err;
 	int i;
 
 	if (!client || !msg) {
@@ -209,12 +198,8 @@ static void handle_get_im_values_msg(xim_client_t *client, xim_msg_get_im_values
 		reply.num_values++;
 	}
 
-	if ((buf_len = xim_msg_encode((xim_msg_t*)&reply, buf, sizeof(buf))) > 0) {
-		int err;
-
-		if ((err = fd_write(client->fd, buf, buf_len)) < 0) {
-			fprintf(stderr, "fd_write: %s\n", strerror(-err));
-		}
+	if ((err = xim_client_send(client, (xim_msg_t*)&reply)) < 0) {
+		fprintf(stderr, "xim_client_send: %s\n", strerror(-err));
 	}
 
 	free(reply.values);
