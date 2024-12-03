@@ -79,6 +79,16 @@ struct XIM_OPEN_REPLY {
 	/* LISTofXICATTR */
 };
 
+struct XIM_CLOSE {
+	uint16_t im;
+	uint16_t unused;
+};
+
+struct XIM_CLOSE_REPLY {
+	uint16_t im;
+	uint16_t unused;
+};
+
 struct XIM_QUERY_EXTENSION {
 	uint16_t im;
 	uint16_t exts_len;
@@ -218,6 +228,16 @@ static const struct {
 		.type = XIM_OPEN_REPLY,
 		.name = "XIM_OPEN_REPLY",
 		.size = sizeof(xim_msg_open_reply_t)
+	},
+	[XIM_CLOSE] = {
+		.type = XIM_CLOSE,
+		.name = "XIM_CLOSE",
+		.size = sizeof(xim_msg_close_t)
+	},
+	[XIM_CLOSE_REPLY] = {
+		.type = XIM_CLOSE_REPLY,
+		.name = "XIM_CLOSE_REPLY",
+		.size = sizeof(xim_msg_close_reply_t)
 	},
 	[XIM_QUERY_EXTENSION] = {
 		.type = XIM_QUERY_EXTENSION,
@@ -408,6 +428,24 @@ static int decode_XIM_OPEN(xim_msg_t **dst, const struct XIM_OPEN *src, const si
 
 	*dst = (xim_msg_t*)msg;
 	return padded_len;
+}
+
+static int decode_XIM_CLOSE(xim_msg_t **dst, const struct XIM_CLOSE *src, const size_t src_len)
+{
+	xim_msg_close_t *msg;
+
+	if (src_len < sizeof(*src)) {
+		return -ENOMSG;
+	}
+
+	if (!(msg = calloc(1, sizeof(*msg)))) {
+		return -ENOMEM;
+	}
+
+	msg->im = src->im;
+
+	*dst = (xim_msg_t*)msg;
+	return sizeof(*src);
 }
 
 static int decode_XIM_QUERY_EXTENSION(xim_msg_t **dst, const struct XIM_QUERY_EXTENSION *src,
@@ -830,6 +868,12 @@ int xim_msg_decode(xim_msg_t **dst, const uint8_t *src, const size_t src_len)
 			                      src_len - sizeof(*hdr));
 			break;
 
+		case XIM_CLOSE:
+			fprintf(stderr, "Decoding XIM_CLOSE\n");
+			err = decode_XIM_CLOSE(&msg, (struct XIM_CLOSE*)(hdr + 1),
+			                       src_len - sizeof(*hdr));
+			break;
+
 		case XIM_QUERY_EXTENSION:
 			fprintf(stderr, "Decoding XIM_QUERY_EXTENSION\n");
 			err = decode_XIM_QUERY_EXTENSION(&msg, (struct XIM_QUERY_EXTENSION*)(hdr + 1),
@@ -1060,6 +1104,24 @@ static int encode_XIM_OPEN_REPLY(xim_msg_open_reply_t *src, uint8_t *dst, const 
 	}
 
 	return encoded_len;
+}
+
+static int encode_XIM_CLOSE_REPLY(xim_msg_close_reply_t *src, uint8_t *dst, const size_t dst_size)
+{
+	struct XIM_CLOSE_REPLY *raw;
+
+	if (!src || !dst) {
+		return -EINVAL;
+	}
+
+	if (dst_size < sizeof(*raw)) {
+		return -ENOMEM;
+	}
+
+	raw = (struct XIM_CLOSE_REPLY*)dst;
+	raw->im = src->im;
+
+	return sizeof(*raw);
 }
 
 static int encode_XIM_QUERY_EXTENSION_REPLY(xim_msg_query_extension_reply_t *src,
@@ -1332,6 +1394,12 @@ int xim_msg_encode(xim_msg_t *src, uint8_t *dst, const size_t dst_size)
 		payload_len = encode_XIM_OPEN_REPLY((xim_msg_open_reply_t*)src,
 		                                    (uint8_t*)(hdr + 1),
 		                                    dst_size - sizeof(*hdr));
+		break;
+
+	case XIM_CLOSE_REPLY:
+		payload_len = encode_XIM_CLOSE_REPLY((xim_msg_close_reply_t*)src,
+		                                     (uint8_t*)(hdr + 1),
+		                                     dst_size - sizeof(*hdr));
 		break;
 
 	case XIM_QUERY_EXTENSION_REPLY:

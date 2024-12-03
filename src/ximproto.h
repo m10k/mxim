@@ -157,6 +157,18 @@ typedef struct {
 	xim_msg_t hdr;
 
 	int im;
+} xim_msg_close_t;
+
+typedef struct {
+	xim_msg_t hdr;
+
+	int im;
+} xim_msg_close_reply_t;
+
+typedef struct {
+	xim_msg_t hdr;
+
+	int im;
 	int num_exts;
 	char **exts;
 } xim_msg_query_extension_t;
