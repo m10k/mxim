@@ -108,6 +108,12 @@ typedef enum {
 	XIM_ERROR_BAD_SOMETHING        = 999
 } xim_error_t;
 
+typedef enum {
+	XIM_COMMIT_FLAG_SYNC   = 1,
+	XIM_COMMIT_FLAG_CHARS  = 2,
+	XIM_COMMIT_FLAG_KEYSYM = 4
+} xim_commit_flags_t;
+
 typedef struct {
 	xim_msg_type_t type;
 	uint8_t subtype;
@@ -340,6 +346,20 @@ typedef struct {
 		void *data;
 	} preedit;
 } xim_msg_reset_ic_reply_t;
+
+typedef struct {
+	xim_msg_t hdr;
+
+	int im;
+	int ic;
+	xim_commit_flags_t flags;
+
+	uint32_t sym;
+	struct {
+		size_t len;
+		void *data;
+	} string;
+} xim_msg_commit_t;
 
 typedef struct {
 	xim_msg_t hdr;

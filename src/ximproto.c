@@ -221,6 +221,31 @@ struct XIM_RESET_IC_REPLY {
 	uint8_t preedit[];
 };
 
+struct XIM_COMMIT {
+	uint16_t im;
+	uint16_t ic;
+	uint16_t flag;
+
+	union {
+		struct {
+			uint16_t unused;
+			uint32_t sym;
+		} keysym;
+
+		struct {
+			uint16_t len_string;
+			uint8_t string[];
+		} chars;
+
+		struct {
+			uint16_t unused;
+			uint32_t sym;
+			uint16_t len_string;
+			uint8_t string[];
+		} both;
+	} data;
+};
+
 static const struct {
 	xim_msg_type_t type;
 	char *name;
@@ -370,6 +395,11 @@ static const struct {
 		.type = XIM_RESET_IC_REPLY,
 		.name = "XIM_RESET_IC_REPLY",
 		.size = sizeof(xim_msg_reset_ic_reply_t)
+	},
+	[XIM_COMMIT] = {
+		.type = XIM_COMMIT,
+		.name = "XIM_COMMIT",
+		.size = sizeof(xim_msg_commit_t)
 	}
 };
 
@@ -1515,6 +1545,58 @@ static int encode_XIM_RESET_IC_REPLY(xim_msg_reset_ic_reply_t *src, uint8_t *dst
 	return padded_len;
 }
 
+static int encode_XIM_COMMIT(xim_msg_commit_t *src, uint8_t *dst, const size_t dst_size)
+{
+	struct XIM_COMMIT *raw;
+	int encoded_len;
+	int padding_len;
+	int padded_len;
+
+	if (!src || !dst) {
+		return -EINVAL;
+	}
+
+	raw = (struct XIM_COMMIT*)dst;
+	encoded_len = sizeof(uint16_t) * 3;
+
+	if (src->flags & XIM_COMMIT_FLAG_KEYSYM) {
+		encoded_len += sizeof(raw->data.keysym);
+	}
+	if (src->flags & XIM_COMMIT_FLAG_CHARS) {
+		encoded_len += sizeof(raw->data.chars) + src->string.len;
+	}
+	padding_len = PAD(encoded_len);
+	padded_len = encoded_len + padding_len;
+
+	if (dst_size < padded_len) {
+		return -EMSGSIZE;
+	}
+
+	raw->im = src->im;
+	raw->ic = src->ic;
+	raw->flag = src->flags;
+
+	if (src->flags & XIM_COMMIT_FLAG_KEYSYM) {
+		raw->data.keysym.unused = 0;
+		raw->data.keysym.sym = src->sym;
+	}
+
+	if (src->flags & XIM_COMMIT_FLAG_CHARS) {
+		if (src->flags & XIM_COMMIT_FLAG_KEYSYM) {
+			/* have KeySym *AND* Chars */
+			raw->data.both.len_string = src->string.len;
+			memmove(raw->data.both.string, src->string.data, src->string.len);
+			memset(raw->data.both.string + src->string.len, 0, padding_len);
+		} else {
+			raw->data.chars.len_string = src->string.len;
+			memmove(raw->data.chars.string, src->string.data, src->string.len);
+			memset(raw->data.chars.string + src->string.len, 0, padding_len);
+		}
+	}
+
+	return padded_len;
+}
+
 int xim_msg_encode(xim_msg_t *src, uint8_t *dst, const size_t dst_size)
 {
 	struct XIM_PACKET *hdr;
@@ -1620,6 +1702,12 @@ int xim_msg_encode(xim_msg_t *src, uint8_t *dst, const size_t dst_size)
 		payload_len = encode_XIM_RESET_IC_REPLY((xim_msg_reset_ic_reply_t*)src,
 		                                        (uint8_t*)(hdr + 1),
 		                                        dst_size - sizeof(*hdr));
+		break;
+
+	case XIM_COMMIT:
+		payload_len = encode_XIM_COMMIT((xim_msg_commit_t*)src,
+		                                (uint8_t*)(hdr + 1),
+		                                dst_size - sizeof(*hdr));
 		break;
 
 	default:
