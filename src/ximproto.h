@@ -141,6 +141,14 @@ typedef struct {
 
 typedef struct {
 	xim_msg_t hdr;
+} xim_msg_disconnect_t;
+
+typedef struct {
+	xim_msg_t hdr;
+} xim_msg_disconnect_reply_t;
+
+typedef struct {
+	xim_msg_t hdr;
 
 	char *locale;
 } xim_msg_open_t;

@@ -219,6 +219,16 @@ static const struct {
 		.name = "XIM_CONNECT_REPLY",
 		.size = sizeof(xim_msg_connect_reply_t)
 	},
+	[XIM_DISCONNECT] = {
+		.type = XIM_DISCONNECT,
+		.name = "XIM_DISCONNECT",
+		.size = sizeof(xim_msg_disconnect_t)
+	},
+	[XIM_DISCONNECT_REPLY] = {
+		.type = XIM_DISCONNECT_REPLY,
+		.name = "XIM_DISCONNECT_REPLY",
+		.size = sizeof(xim_msg_disconnect_reply_t)
+	},
 	[XIM_OPEN] = {
 		.type = XIM_OPEN,
 		.name = "XIM_OPEN",
@@ -862,6 +872,12 @@ int xim_msg_decode(xim_msg_t **dst, const uint8_t *src, const size_t src_len)
 			                         src_len - sizeof(*hdr));
 			break;
 
+		case XIM_DISCONNECT:
+			fprintf(stderr, "Decoding XIM_DISCONNECT\n");
+			/* no payload */
+			err = 0;
+			break;
+
 		case XIM_OPEN:
 			fprintf(stderr, "Decoding XIM_OPEN\n");
 			err = decode_XIM_OPEN(&msg, (struct XIM_OPEN*)(hdr + 1),
@@ -942,7 +958,7 @@ int xim_msg_decode(xim_msg_t **dst, const uint8_t *src, const size_t src_len)
 			break;
 		}
 
-		if (err > 0) {
+		if (err >= 0) {
 			msg->type = hdr->opcode_major;
 			msg->subtype = hdr->opcode_minor;
 			msg->length = hdr->length * 4;
@@ -1388,6 +1404,10 @@ int xim_msg_encode(xim_msg_t *src, uint8_t *dst, const size_t dst_size)
 		payload_len = encode_XIM_CONNECT_REPLY((xim_msg_connect_reply_t*)src,
 		                                       (uint8_t*)(hdr + 1),
 		                                       dst_size - sizeof(*hdr));
+		break;
+
+	case XIM_DISCONNECT_REPLY:
+		payload_len = 0;
 		break;
 
 	case XIM_OPEN_REPLY:
