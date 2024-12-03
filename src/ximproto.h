@@ -280,6 +280,20 @@ typedef struct {
 
 	int im;
 	int ic;
+} xim_msg_destroy_ic_t;
+
+typedef struct {
+	xim_msg_t hdr;
+
+	int im;
+	int ic;
+} xim_msg_destroy_ic_reply_t;
+
+typedef struct {
+	xim_msg_t hdr;
+
+	int im;
+	int ic;
 	unsigned flags;
 	xim_error_t error;
 	size_t detail_len;
