@@ -159,6 +159,11 @@ static void handle_open_msg(xim_client_t *client, xim_msg_open_t *msg)
 
 	if (!(im = input_method_for_locale(msg->locale))) {
 		/* XIM_ERROR */
+
+		if ((err = xim_client_send_error(client, 0, 0, XIM_ERROR_LOCALE_NOT_SUPPORTED, NULL)) < 0) {
+			fprintf(stderr, "xim_client_send_error: %s\n", strerror(-err));
+			/* FIXME: handle error */
+		}
 	} else {
 		/* XIM_OPEN_REPLY */
 
@@ -220,6 +225,7 @@ static void select_encoding(xim_client_t *client, int encoding)
 
 static void handle_encoding_negotiation_msg(xim_client_t *client, xim_msg_encoding_negotiation_t *msg)
 {
+	int err;
 	int i;
 
 	if (!client || !client->im || !client->im->encodings || !msg || !msg->encodings) {
@@ -241,7 +247,11 @@ static void handle_encoding_negotiation_msg(xim_client_t *client, xim_msg_encodi
 		fprintf(stderr, "Encoding %s not supported by client\n", client->im->encodings[i]);
 	}
 
-	/* XIM_ERROR */
+	/* XIM_ERROR: Server and client don't have any common encodings */
+	if ((err = xim_client_send_error(client, client->im->id, 0, XIM_ERROR_BAD_SOMETHING,
+	                                 "Server doesn't support any of the client's encodings")) < 0) {
+		fprintf(stderr, "xim_client_send_error: %s\n", strerror(-err));
+	}
 
 	return;
 }
