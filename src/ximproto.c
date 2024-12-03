@@ -1672,7 +1672,7 @@ static int encode_XIM_FORWARD_EVENT(xim_msg_forward_event_t *src, uint8_t *dst, 
 	raw->serial = src->serial;
 	memmove(&raw->event, &src->event, sizeof(raw->event));
 
-	return sizeof(*src);
+	return sizeof(*raw);
 }
 
 static int encode_XIM_SET_EVENT_MASK(xim_msg_set_event_mask_t *src, uint8_t *dst, const size_t dst_size)
