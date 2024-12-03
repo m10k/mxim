@@ -199,6 +199,16 @@ struct XIM_DESTROY_IC_REPLY {
 	uint16_t ic;
 };
 
+struct XIM_SYNC {
+	uint16_t im;
+	uint16_t ic;
+};
+
+struct XIM_SYNC_REPLY {
+	uint16_t im;
+	uint16_t ic;
+};
+
 static const struct {
 	xim_msg_type_t type;
 	char *name;
@@ -328,6 +338,16 @@ static const struct {
 		.type = XIM_DESTROY_IC_REPLY,
 		.name = "XIM_DESTROY_IC_REPLY",
 		.size = sizeof(xim_msg_destroy_ic_reply_t)
+	},
+	[XIM_SYNC] = {
+		.type = XIM_SYNC,
+		.name = "XIM_SYNC",
+		.size = sizeof(xim_msg_sync_t)
+	},
+	[XIM_SYNC_REPLY] = {
+		.type = XIM_SYNC_REPLY,
+		.name = "XIM_SYNC_REPLY",
+		.size = sizeof(xim_msg_sync_reply_t)
 	}
 };
 
@@ -847,6 +867,25 @@ static int decode_XIM_DESTROY_IC(xim_msg_t **dst, const struct XIM_DESTROY_IC *s
 	return sizeof(*src);
 }
 
+static int decode_XIM_SYNC(xim_msg_t **dst, const struct XIM_SYNC *src, const size_t src_len)
+{
+	xim_msg_sync_t *msg;
+
+	if (src_len < sizeof(*src)) {
+		return -ENOMSG;
+	}
+
+	if (!(msg = calloc(1, sizeof(*msg)))) {
+		return -ENOMEM;
+	}
+
+	msg->im = src->im;
+	msg->ic = src->ic;
+
+	*dst = (xim_msg_t*)msg;
+	return sizeof(*src);
+}
+
 int xim_msg_decode(xim_msg_t **dst, const uint8_t *src, const size_t src_len)
 {
 	struct XIM_PACKET *hdr;
@@ -949,6 +988,12 @@ int xim_msg_decode(xim_msg_t **dst, const uint8_t *src, const size_t src_len)
 			fprintf(stderr, "Decoding XIM_DESTROY_IC\n");
 			err = decode_XIM_DESTROY_IC(&msg, (struct XIM_DESTROY_IC*)(hdr + 1),
 			                            src_len - sizeof(*hdr));
+			break;
+
+		case XIM_SYNC:
+			fprintf(stderr, "Decoding XIM_SYNC\n");
+			err = decode_XIM_SYNC(&msg, (struct XIM_SYNC*)(hdr + 1),
+			                      src_len - sizeof(*hdr));
 			break;
 
 		default:
@@ -1375,6 +1420,25 @@ static int encode_XIM_DESTROY_IC_REPLY(xim_msg_destroy_ic_reply_t *src, uint8_t 
 	return sizeof(*raw);
 }
 
+static int encode_XIM_SYNC_REPLY(xim_msg_sync_reply_t *src, uint8_t *dst, const size_t dst_size)
+{
+	struct XIM_SYNC_REPLY *raw;
+
+	if (!src || !dst) {
+		return -EINVAL;
+	}
+
+	if (dst_size < sizeof(*raw)) {
+		return -EMSGSIZE;
+	}
+
+	raw = (struct XIM_SYNC_REPLY*)dst;
+	raw->im = src->im;
+	raw->ic = src->ic;
+
+	return sizeof(*raw);
+}
+
 int xim_msg_encode(xim_msg_t *src, uint8_t *dst, const size_t dst_size)
 {
 	struct XIM_PACKET *hdr;
@@ -1468,6 +1532,12 @@ int xim_msg_encode(xim_msg_t *src, uint8_t *dst, const size_t dst_size)
 		payload_len = encode_XIM_DESTROY_IC_REPLY((xim_msg_destroy_ic_reply_t*)src,
 		                                          (uint8_t*)(hdr + 1),
 		                                          dst_size - sizeof(*hdr));
+		break;
+
+	case XIM_SYNC_REPLY:
+		payload_len = encode_XIM_SYNC_REPLY((xim_msg_sync_reply_t*)src,
+		                                    (uint8_t*)(hdr + 1),
+		                                    dst_size - sizeof(*hdr));
 		break;
 
 	default:

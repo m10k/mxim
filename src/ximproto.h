@@ -314,6 +314,20 @@ typedef struct {
 
 	int im;
 	int ic;
+} xim_msg_sync_t;
+
+typedef struct {
+	xim_msg_t hdr;
+
+	int im;
+	int ic;
+} xim_msg_sync_reply_t;
+
+typedef struct {
+	xim_msg_t hdr;
+
+	int im;
+	int ic;
 	unsigned flags;
 	xim_error_t error;
 	size_t detail_len;
