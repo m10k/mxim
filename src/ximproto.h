@@ -383,6 +383,17 @@ typedef struct {
 
 	int im;
 	int ic;
+	struct {
+		uint32_t forward;
+		uint32_t sync;
+	} masks;
+} xim_msg_set_event_mask_t;
+
+typedef struct {
+	xim_msg_t hdr;
+
+	int im;
+	int ic;
 	unsigned flags;
 	xim_error_t error;
 	size_t detail_len;

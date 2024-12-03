@@ -255,6 +255,15 @@ struct XIM_FORWARD_EVENT {
 	XEvent event;
 };
 
+struct XIM_SET_EVENT_MASK {
+	uint16_t im;
+	uint16_t ic;
+	struct {
+		uint32_t forward;
+		uint32_t sync;
+	} masks;
+};
+
 static const struct {
 	xim_msg_type_t type;
 	char *name;
@@ -414,6 +423,11 @@ static const struct {
 		.type = XIM_FORWARD_EVENT,
 		.name = "XIM_FORWARD_EVENT",
 		.size = sizeof(xim_msg_forward_event_t)
+	},
+	[XIM_SET_EVENT_MASK] = {
+		.type = XIM_SET_EVENT_MASK,
+		.name = "XIM_SET_EVENT_MASK",
+		.size = sizeof(xim_msg_set_event_mask_t)
 	}
 };
 
@@ -1661,6 +1675,27 @@ static int encode_XIM_FORWARD_EVENT(xim_msg_forward_event_t *src, uint8_t *dst, 
 	return sizeof(*src);
 }
 
+static int encode_XIM_SET_EVENT_MASK(xim_msg_set_event_mask_t *src, uint8_t *dst, const size_t dst_size)
+{
+	struct XIM_SET_EVENT_MASK *raw;
+
+	if (!src || !dst) {
+		return -EINVAL;
+	}
+
+	if (dst_size < sizeof(*raw)) {
+		return -EMSGSIZE;
+	}
+
+	raw = (struct XIM_SET_EVENT_MASK*)dst;
+	raw->im = src->im;
+	raw->ic = src->ic;
+	raw->masks.forward = src->masks.forward;
+	raw->masks.sync = src->masks.sync;
+
+	return sizeof(*raw);
+}
+
 int xim_msg_encode(xim_msg_t *src, uint8_t *dst, const size_t dst_size)
 {
 	struct XIM_PACKET *hdr;
@@ -1778,6 +1813,12 @@ int xim_msg_encode(xim_msg_t *src, uint8_t *dst, const size_t dst_size)
 		payload_len = encode_XIM_FORWARD_EVENT((xim_msg_forward_event_t*)src,
 		                                       (uint8_t*)(hdr + 1),
 		                                       dst_size - sizeof(*hdr));
+		break;
+
+	case XIM_SET_EVENT_MASK:
+		payload_len = encode_XIM_SET_EVENT_MASK((xim_msg_set_event_mask_t*)src,
+		                                        (uint8_t*)(hdr + 1),
+		                                        dst_size - sizeof(*hdr));
 		break;
 
 	default:
