@@ -26,6 +26,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
+#include <X11/Xlib.h>
 
 struct XIM_PACKET {
 	uint8_t opcode_major;
@@ -246,6 +247,14 @@ struct XIM_COMMIT {
 	} data;
 };
 
+struct XIM_FORWARD_EVENT {
+	uint16_t im;
+	uint16_t ic;
+	uint16_t flag;
+	uint16_t serial;
+	XEvent event;
+};
+
 static const struct {
 	xim_msg_type_t type;
 	char *name;
@@ -400,6 +409,11 @@ static const struct {
 		.type = XIM_COMMIT,
 		.name = "XIM_COMMIT",
 		.size = sizeof(xim_msg_commit_t)
+	},
+	[XIM_FORWARD_EVENT] = {
+		.type = XIM_FORWARD_EVENT,
+		.name = "XIM_FORWARD_EVENT",
+		.size = sizeof(xim_msg_forward_event_t)
 	}
 };
 
@@ -957,6 +971,28 @@ static int decode_XIM_RESET_IC(xim_msg_t **dst, const struct XIM_RESET_IC *src, 
 	return sizeof(*src);
 }
 
+static int decode_XIM_FORWARD_EVENT(xim_msg_t **dst, const struct XIM_FORWARD_EVENT *src,
+                                    const size_t src_len)
+{
+	xim_msg_forward_event_t *msg;
+
+	if (src_len < sizeof(*src)) {
+		return -ENOMSG;
+	}
+
+	if (!(msg = calloc(1, sizeof(*msg)))) {
+		return -ENOMEM;
+	}
+
+	msg->im = src->im;
+	msg->ic = src->ic;
+	msg->flags = src->flag;
+	msg->serial = src->serial;
+	memmove(&msg->event, &src->event, sizeof(msg->event));
+
+	return sizeof(*src);
+}
+
 int xim_msg_decode(xim_msg_t **dst, const uint8_t *src, const size_t src_len)
 {
 	struct XIM_PACKET *hdr;
@@ -1071,6 +1107,12 @@ int xim_msg_decode(xim_msg_t **dst, const uint8_t *src, const size_t src_len)
 			fprintf(stderr, "Decoding XIM_RESET_IC\n");
 			err = decode_XIM_RESET_IC(&msg, (struct XIM_RESET_IC*)(hdr + 1),
 			                          src_len - sizeof(*hdr));
+			break;
+
+		case XIM_FORWARD_EVENT:
+			fprintf(stderr, "Decoding XIM_FORWARD_EVENT\n");
+			err = decode_XIM_FORWARD_EVENT(&msg, (struct XIM_FORWARD_EVENT*)(hdr + 1),
+			                               src_len - sizeof(*hdr));
 			break;
 
 		default:
@@ -1597,6 +1639,28 @@ static int encode_XIM_COMMIT(xim_msg_commit_t *src, uint8_t *dst, const size_t d
 	return padded_len;
 }
 
+static int encode_XIM_FORWARD_EVENT(xim_msg_forward_event_t *src, uint8_t *dst, const size_t dst_size)
+{
+	struct XIM_FORWARD_EVENT *raw;
+
+	if (!src || !dst) {
+		return -EINVAL;
+	}
+
+	if (dst_size < sizeof(*raw)) {
+		return -EMSGSIZE;
+	}
+
+	raw = (struct XIM_FORWARD_EVENT*)dst;
+	raw->im = src->im;
+	raw->ic = src->ic;
+	raw->flag = src->flags;
+	raw->serial = src->serial;
+	memmove(&raw->event, &src->event, sizeof(raw->event));
+
+	return sizeof(*src);
+}
+
 int xim_msg_encode(xim_msg_t *src, uint8_t *dst, const size_t dst_size)
 {
 	struct XIM_PACKET *hdr;
@@ -1708,6 +1772,12 @@ int xim_msg_encode(xim_msg_t *src, uint8_t *dst, const size_t dst_size)
 		payload_len = encode_XIM_COMMIT((xim_msg_commit_t*)src,
 		                                (uint8_t*)(hdr + 1),
 		                                dst_size - sizeof(*hdr));
+		break;
+
+	case XIM_FORWARD_EVENT:
+		payload_len = encode_XIM_FORWARD_EVENT((xim_msg_forward_event_t*)src,
+		                                       (uint8_t*)(hdr + 1),
+		                                       dst_size - sizeof(*hdr));
 		break;
 
 	default:

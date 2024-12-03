@@ -24,6 +24,7 @@
 #include "ximtypes.h"
 #include <stdint.h>
 #include <sys/types.h>
+#include <X11/Xlib.h>
 
 typedef enum {
 	XIM_CONNECT                    =  1,
@@ -113,6 +114,12 @@ typedef enum {
 	XIM_COMMIT_FLAG_CHARS  = 2,
 	XIM_COMMIT_FLAG_KEYSYM = 4
 } xim_commit_flags_t;
+
+typedef enum {
+	XIM_FORWARD_EVENT_FLAG_SYNC   = 1,
+	XIM_FORWARD_EVENT_FLAG_FILTER = 2,
+	XIM_FORWARD_EVENT_FLAG_LOOKUP = 4
+} xim_forward_event_flags_t;
 
 typedef struct {
 	xim_msg_type_t type;
@@ -360,6 +367,16 @@ typedef struct {
 		void *data;
 	} string;
 } xim_msg_commit_t;
+
+typedef struct {
+	xim_msg_t hdr;
+
+	int im;
+	int ic;
+	xim_forward_event_flags_t flags;
+	int serial;
+	XEvent event;
+} xim_msg_forward_event_t;
 
 typedef struct {
 	xim_msg_t hdr;
