@@ -169,6 +169,16 @@ struct XIM_SET_IC_VALUES_REPLY {
 	uint16_t ic;
 };
 
+struct XIM_SET_IC_FOCUS {
+	uint16_t im;
+	uint16_t ic;
+};
+
+struct XIM_UNSET_IC_FOCUS {
+	uint16_t im;
+	uint16_t ic;
+};
+
 static const struct {
 	xim_msg_type_t type;
 	char *name;
@@ -258,6 +268,16 @@ static const struct {
 		.type = XIM_SET_IC_VALUES_REPLY,
 		.name = "XIM_SET_IC_VALUES_REPLY",
 		.size = sizeof(xim_msg_set_ic_values_reply_t)
+	},
+	[XIM_SET_IC_FOCUS] = {
+		.type = XIM_SET_IC_FOCUS,
+		.name = "XIM_SET_IC_FOCUS",
+		.size = sizeof(xim_msg_set_ic_focus_t)
+	},
+	[XIM_UNSET_IC_FOCUS] = {
+		.type = XIM_UNSET_IC_FOCUS,
+		.name = "XIM_UNSET_IC_FOCUS",
+		.size = sizeof(xim_msg_unset_ic_focus_t)
 	}
 };
 
@@ -699,6 +719,46 @@ static int decode_XIM_CREATE_IC(xim_msg_t **dst, const struct XIM_CREATE_IC *src
 	return decoded_len + sizeof(*src);
 }
 
+static int decode_XIM_SET_IC_FOCUS(xim_msg_t **dst, const struct XIM_SET_IC_FOCUS *src,
+                                   const size_t src_len)
+{
+	xim_msg_set_ic_focus_t *msg;
+
+	if (src_len < sizeof(*src)) {
+		return -ENOMSG;
+	}
+
+	if (!(msg = calloc(1, sizeof(*msg)))) {
+		return -ENOMEM;
+	}
+
+	msg->im = src->im;
+	msg->ic = src->ic;
+
+	*dst = (xim_msg_t*)msg;
+	return sizeof(*src);
+}
+
+static int decode_XIM_UNSET_IC_FOCUS(xim_msg_t **dst, const struct XIM_UNSET_IC_FOCUS *src,
+                                     const size_t src_len)
+{
+	xim_msg_unset_ic_focus_t *msg;
+
+	if (src_len < sizeof(*src)) {
+		return -ENOMSG;
+	}
+
+	if (!(msg = calloc(1, sizeof(*msg)))) {
+		return -ENOMEM;
+	}
+
+	msg->im = src->im;
+	msg->ic = src->ic;
+
+	*dst = (xim_msg_t*)msg;
+	return sizeof(*src);
+}
+
 int xim_msg_decode(xim_msg_t **dst, const uint8_t *src, const size_t src_len)
 {
 	struct XIM_PACKET *hdr;
@@ -771,6 +831,18 @@ int xim_msg_decode(xim_msg_t **dst, const uint8_t *src, const size_t src_len)
 			fprintf(stderr, "Decoding XIM_CREATE_IC\n");
 			err = decode_XIM_CREATE_IC(&msg, (struct XIM_CREATE_IC*)(hdr + 1),
 			                           src_len - sizeof(*hdr));
+			break;
+
+		case XIM_SET_IC_FOCUS:
+			fprintf(stderr, "Decoding XIM_SET_IC_FOCUS\n");
+			err = decode_XIM_SET_IC_FOCUS(&msg, (struct XIM_SET_IC_FOCUS*)(hdr + 1),
+			                              src_len - sizeof(*hdr));
+			break;
+
+		case XIM_UNSET_IC_FOCUS:
+			fprintf(stderr, "Decoding XIM_UNSET_IC_FOCUS\n");
+			err = decode_XIM_UNSET_IC_FOCUS(&msg, (struct XIM_UNSET_IC_FOCUS*)(hdr + 1),
+			                                src_len - sizeof(*hdr));
 			break;
 
 		default:
