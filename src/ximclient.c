@@ -23,6 +23,7 @@
 #include "ximclient.h"
 #include "ximproto.h"
 #include <errno.h>
+#include <limits.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -51,6 +52,79 @@ static int xim_client_send(xim_client_t *client, xim_msg_t *msg)
 		fprintf(stderr, "fd_write: %s\n", strerror(-err));
 	}
 
+	return err;
+}
+
+static int make_detail(char **dst, const char *fmt, va_list args)
+{
+	char *detail;
+	int detail_size;
+	int detail_len;
+	va_list my_args;
+
+	if (!dst || !fmt) {
+		return -EINVAL;
+	}
+
+	va_copy(my_args, args);
+	detail_len = vsnprintf(NULL, 0, fmt, my_args);
+	va_end(my_args);
+
+	if (detail_len == INT_MAX) {
+		return -EOVERFLOW;
+	}
+
+	if (detail_len == 0) {
+		return 0;
+	}
+
+	detail_size = detail_len + 1;
+	if (!(detail = malloc(detail_size))) {
+		return -ENOMEM;
+	}
+
+	va_copy(my_args, args);
+	vsnprintf(detail, detail_size, fmt, my_args);
+	va_end(my_args);
+
+	*dst = detail;
+	return detail_len;
+}
+
+static int xim_client_send_error(xim_client_t *client, const int im, const int ic,
+                                 xim_error_t error, const char *fmt, ...)
+{
+	xim_msg_error_t msg;
+	char *detail;
+	int detail_len;
+	int err;
+	va_list args;
+
+	detail = NULL;
+
+	va_start(args, fmt);
+	detail_len = make_detail(&detail, fmt, args);
+	va_end(args);
+
+	if (detail_len < 0) {
+		detail_len = 0;
+	}
+
+	msg.hdr.type = XIM_ERROR;
+	msg.hdr.subtype = 0;
+	msg.im = im;
+	msg.ic = ic;
+	msg.flags = (im ? 1 : 0) | (ic ? 2 : 0);
+	msg.error = error;
+	msg.detail_len = detail_len;
+	msg.detail = detail;
+	msg.detail_type = 4; /* char data */
+
+	if ((err = xim_client_send(client, (xim_msg_t*)&msg)) < 0) {
+		fprintf(stderr, "xim_client_send: %s\n", strerror(-err));
+	}
+
+	free(detail);
 	return err;
 }
 
