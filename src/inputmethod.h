@@ -29,9 +29,6 @@
 typedef struct input_method input_method_t;
 
 struct input_method {
-	/* Unique ID of the input method */
-	uint16_t id;
-
 	/* The input style that is implemented by the input method */
 	XIMStyle input_style;
 
