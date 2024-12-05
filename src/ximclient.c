@@ -29,12 +29,14 @@
 #include <stdlib.h>
 #include <string.h>
 
+#define CLIENT_IM_MAX 16
+
 struct xim_client {
 	fd_t *fd;
 	uint8_t rxbuf[1024];
 	size_t rxbuf_len;
 
-	input_method_t *im;
+	input_method_t *ims[CLIENT_IM_MAX];
 };
 
 static int xim_client_send(xim_client_t *client, xim_msg_t *msg)
@@ -156,6 +158,21 @@ static void handle_open_msg(xim_client_t *client, xim_msg_open_t *msg)
 {
 	input_method_t *im;
 	int err;
+	int id;
+	int i;
+
+	for (i = id = 0; i < (sizeof(client->ims) / sizeof(client->ims[0])); i++) {
+		if (!client->ims[i]) {
+			id = i + 1;
+			break;
+		}
+	}
+
+	if (!id) {
+		xim_client_send_error(client, 0, 0, XIM_ERROR_BAD_ALLOC,
+		                      "Client has reached the maximum number of open input methods");
+		return;
+	}
 
 	if (!(im = input_method_for_locale(msg->locale))) {
 		/* XIM_ERROR */
@@ -171,11 +188,11 @@ static void handle_open_msg(xim_client_t *client, xim_msg_open_t *msg)
 
 		reply.hdr.type = XIM_OPEN_REPLY;
 		reply.hdr.subtype = 0;
-		reply.id = im->id;
+		reply.id = id;
 		reply.im_attrs = im->im_attrs;
 		reply.ic_attrs = im->ic_attrs;
 
-		client->im = im;
+		client->ims[id - 1] = im;
 
 		if ((err = xim_client_send(client, (xim_msg_t*)&reply)) < 0) {
 			fprintf(stderr, "xim_client_send: %s\n", strerror(-err));
@@ -189,16 +206,19 @@ static void handle_open_msg(xim_client_t *client, xim_msg_open_t *msg)
 static void handle_query_extension_msg(xim_client_t *client, xim_msg_query_extension_t *msg)
 {
 	xim_msg_query_extension_reply_t reply;
+	input_method_t *im;
 	int err;
 
-	if (!client->im) {
+	if (msg->im <= 0 || msg->im > CLIENT_IM_MAX ||
+	    !(im = client->ims[msg->im - 1])) {
+		xim_client_send_error(client, 0, 0, XIM_ERROR_BAD_SOMETHING, "Invalid IM id");
 		return;
 	}
 
 	reply.hdr.type = XIM_QUERY_EXTENSION_REPLY;
 	reply.hdr.subtype = 0;
-	reply.im = client->im->id;
-	reply.exts = client->im->exts;
+	reply.im = msg->im;
+	reply.exts = im->exts;
 
 	if ((err = xim_client_send(client, (xim_msg_t*)&reply)) < 0) {
 		fprintf(stderr, "xim_client_send: %s\n", strerror(-err));
@@ -207,14 +227,14 @@ static void handle_query_extension_msg(xim_client_t *client, xim_msg_query_exten
 	return;
 }
 
-static void select_encoding(xim_client_t *client, int encoding)
+static void select_encoding(xim_client_t *client, int im, int encoding)
 {
 	xim_msg_encoding_negotiation_reply_t reply;
 	int err;
 
 	reply.hdr.type = XIM_ENCODING_NEGOTIATION_REPLY;
 	reply.hdr.subtype = 0;
-	reply.im = client->im->id;
+	reply.im = im;
 	reply.category = 1;
 	reply.encoding = encoding;
 
@@ -225,30 +245,39 @@ static void select_encoding(xim_client_t *client, int encoding)
 
 static void handle_encoding_negotiation_msg(xim_client_t *client, xim_msg_encoding_negotiation_t *msg)
 {
+	input_method_t *im;
 	int err;
 	int i;
 
-	if (!client || !client->im || !client->im->encodings || !msg || !msg->encodings) {
+	if (!client || !msg || !msg->encodings) {
 		return;
 	}
 
-	for (i = 0; client->im->encodings[i]; i++) {
-		int j;
+	if (msg->im <= 0 || msg->im > CLIENT_IM_MAX ||
+	    !(im = client->ims[msg->im - 1])) {
+		xim_client_send_error(client, msg->im, 0, XIM_ERROR_BAD_SOMETHING, "Invalid IM id");
+		return;
+	}
 
-		for (j = 0; msg->encodings[j]; j++) {
-			if (strcmp(client->im->encodings[i], msg->encodings[j]) == 0) {
-				/* XIM_ENCODING_NEGOTIATION_REPLY */
-				fprintf(stderr, "Client supports %s encoding\n", msg->encodings[j]);
-				select_encoding(client, j);
-				return;
+	if (im->encodings) {
+		for (i = 0; im->encodings[i]; i++) {
+			int j;
+
+			for (j = 0; msg->encodings[j]; j++) {
+				if (strcmp(im->encodings[i], msg->encodings[j]) == 0) {
+					/* XIM_ENCODING_NEGOTIATION_REPLY */
+					fprintf(stderr, "Client supports %s encoding\n", msg->encodings[j]);
+					select_encoding(client, msg->im, j);
+					return;
+				}
 			}
-		}
 
-		fprintf(stderr, "Encoding %s not supported by client\n", client->im->encodings[i]);
+			fprintf(stderr, "Encoding %s not supported by client\n", im->encodings[i]);
+		}
 	}
 
 	/* XIM_ERROR: Server and client don't have any common encodings */
-	if ((err = xim_client_send_error(client, client->im->id, 0, XIM_ERROR_BAD_SOMETHING,
+	if ((err = xim_client_send_error(client, msg->im, 0, XIM_ERROR_BAD_SOMETHING,
 	                                 "Server doesn't support any of the client's encodings")) < 0) {
 		fprintf(stderr, "xim_client_send_error: %s\n", strerror(-err));
 	}
@@ -259,10 +288,17 @@ static void handle_encoding_negotiation_msg(xim_client_t *client, xim_msg_encodi
 static void handle_get_im_values_msg(xim_client_t *client, xim_msg_get_im_values_t *msg)
 {
 	xim_msg_get_im_values_reply_t reply;
+	input_method_t *im;
 	int err;
 	int i;
 
 	if (!client || !msg) {
+		return;
+	}
+
+	if (msg->im <= 0 || msg->im > CLIENT_IM_MAX ||
+	    !(im = client->ims[msg->im - 1])) {
+		xim_client_send_error(client, msg->im, 0, XIM_ERROR_BAD_SOMETHING, "Invalid IM id");
 		return;
 	}
 
@@ -278,7 +314,7 @@ static void handle_get_im_values_msg(xim_client_t *client, xim_msg_get_im_values
 
 	for (i = 0; i < msg->num_attrs; i++) {
 		/* FIXME: check if index is valid */
-		reply.values[i] = client->im->im_values[1 + i];
+		reply.values[i] = im->im_values[1 + i];
 		reply.num_values++;
 	}
 
