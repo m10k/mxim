@@ -64,4 +64,12 @@ int encode_EXT(const ext_t *src, uint8_t *dst, const size_t dst_size);
 
 #define decode_ENCODINGINFO decode_STRING
 
+int attr_clone(attr_t **dst, const attr_t *src);
+int attr_free(attr_t **attr);
+int attrs_free(attr_t ***attrs);
+
+int attr_value_clone(attr_value_t **dst, const attr_value_t *src);
+int attr_value_free(attr_value_t **value);
+int attr_values_free(attr_value_t ***values);
+
 #endif /* XIMTYPES_H */

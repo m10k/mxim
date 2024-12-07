@@ -343,3 +343,104 @@ int decode_LISTofATTRIBUTE(attr_value_t ***dst, const void *src, const size_t sr
 	*dst = attributes;
 	return parsed_len;
 }
+
+int attr_clone(attr_t **dst, const attr_t *src)
+{
+	attr_t *a;
+
+	if (!(a = calloc(1, sizeof(*a)))) {
+		return -ENOMEM;
+	}
+
+	if (!(a->name = strdup(src->name))) {
+		free(a);
+		return -ENOMEM;
+	}
+
+	a->id = src->id;
+	a->type = src->type;
+
+	*dst = a;
+	return 0;
+}
+
+int attr_free(attr_t **attr)
+{
+	if (!attr || !*attr) {
+		return -EINVAL;
+	}
+
+	free((*attr)->name);
+	free(*attr);
+	*attr = NULL;
+
+	return 0;
+}
+
+int attrs_free(attr_t ***attrs)
+{
+	int i;
+
+	if (!attrs || !*attrs) {
+		return -EINVAL;
+	}
+
+	for (i = 0; (*attrs)[i]; i++) {
+		attr_free(&(*attrs)[i]);
+	}
+	free(*attrs);
+	*attrs = NULL;
+
+	return 0;
+}
+
+int attr_value_clone(attr_value_t **dst, const attr_value_t *src)
+{
+	attr_value_t *av;
+
+	if (!(av = calloc(1, sizeof(*av)))) {
+		return -ENOMEM;
+	}
+
+	if (!(av->data = malloc(src->len))) {
+		free(av);
+		return -ENOMEM;
+	}
+
+	av->id = src->id;
+	av->len = src->len;
+	memmove(av->data, src->data, src->len);
+
+	*dst = av;
+	return 0;
+}
+
+int attr_value_free(attr_value_t **value)
+{
+	if (!value || !*value) {
+		return -EINVAL;
+	}
+
+	free((*value)->data);
+	free(*value);
+	*value = NULL;
+
+	return 0;
+}
+
+int attr_values_free(attr_value_t ***values)
+{
+	int i;
+
+	if (!values || !*values) {
+		return -EINVAL;
+	}
+
+	for (i = 0; (*values)[i]; i++) {
+		attr_value_free(&(*values)[i]);
+	}
+	free(*values);
+	*values = NULL;
+
+	return 0;
+}
