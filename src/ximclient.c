@@ -189,15 +189,32 @@ static void handle_open_msg(xim_client_t *client, xim_msg_open_t *msg)
 		reply.hdr.type = XIM_OPEN_REPLY;
 		reply.hdr.subtype = 0;
 		reply.id = id;
-		reply.im_attrs = im->im_attrs;
-		reply.ic_attrs = im->ic_attrs;
+		reply.im_attrs = NULL;
+		reply.ic_attrs = NULL;
 
-		client->ims[id - 1] = im;
+		if ((err = input_method_get_im_attrs(im, &reply.im_attrs)) < 0) {
+			fprintf(stderr, "Could not get IM attributes from input method: %s\n",
+			        strerror(-err));
+			xim_client_send_error(client, 0, 0, XIM_ERROR_BAD_SOMETHING,
+			                      "Could not get IM attributes from input method: %s\n",
+			                      strerror(-err));
+		} else if ((err = input_method_get_ic_attrs(im, &reply.ic_attrs)) < 0) {
+			fprintf(stderr, "Could not get IC attributes from input method: %s\n",
+			        strerror(-err));
+			xim_client_send_error(client, 0, 0, XIM_ERROR_BAD_SOMETHING,
+			                      "Could not get IC attributes from input method: %s\n",
+			                      strerror(-err));
+		} else {
+			client->ims[id - 1] = im;
 
-		if ((err = xim_client_send(client, (xim_msg_t*)&reply)) < 0) {
-			fprintf(stderr, "xim_client_send: %s\n", strerror(-err));
-			/* FIXME: handle error */
+			if ((err = xim_client_send(client, (xim_msg_t*)&reply)) < 0) {
+				fprintf(stderr, "xim_client_send: %s\n", strerror(-err));
+				/* FIXME: handle error */
+			}
 		}
+
+		attrs_free(&reply.im_attrs);
+		attrs_free(&reply.ic_attrs);
 	}
 
 	return;
@@ -313,8 +330,11 @@ static void handle_get_im_values_msg(xim_client_t *client, xim_msg_get_im_values
 	}
 
 	for (i = 0; i < msg->num_attrs; i++) {
+		int idx;
+
 		/* FIXME: check if index is valid */
-		reply.values[i] = im->im_values[1 + i];
+		idx = msg->attrs[i] - 1;
+		reply.values[i] = im->im_attrs[idx].value;
 		reply.num_values++;
 	}
 

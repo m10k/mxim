@@ -1239,11 +1239,11 @@ static int encode_XIM_OPEN_REPLY(xim_msg_open_reply_t *src, uint8_t *dst, const 
 	len_imattrs = len_icattrs = 0;
 
 	if (src->im_attrs) {
-		for (i = 0; src->im_attrs[i].name; i++) {
+		for (i = 0; src->im_attrs[i]; i++) {
 			size_t attr_len;
 
-			fprintf(stderr, "XIMATTR: %s\n", src->im_attrs[i].name);
-			attr_len = 6 + strlen(src->im_attrs[i].name);
+			fprintf(stderr, "XIMATTR: %s\n", src->im_attrs[i]->name);
+			attr_len = 6 + strlen(src->im_attrs[i]->name);
 			required_size += attr_len + PAD(attr_len);
 			num_imattrs++;
 			len_imattrs += attr_len + PAD(attr_len);
@@ -1251,11 +1251,11 @@ static int encode_XIM_OPEN_REPLY(xim_msg_open_reply_t *src, uint8_t *dst, const 
 	}
 
 	if (src->ic_attrs) {
-		for (i = 0; src->ic_attrs[i].name; i++) {
+		for (i = 0; src->ic_attrs[i]; i++) {
 			size_t attr_len;
 
-			fprintf(stderr, "XICATTR: %s\n", src->ic_attrs[i].name);
-			attr_len = 6 + strlen(src->ic_attrs[i].name);
+			fprintf(stderr, "XICATTR: %s\n", src->ic_attrs[i]->name);
+			attr_len = 6 + strlen(src->ic_attrs[i]->name);
 			required_size += attr_len + PAD(attr_len);
 			num_icattrs++;
 			len_icattrs += attr_len + PAD(attr_len);
@@ -1274,7 +1274,7 @@ static int encode_XIM_OPEN_REPLY(xim_msg_open_reply_t *src, uint8_t *dst, const 
 	for (i = 0; i < num_imattrs; i++) {
 		int len;
 
-		if ((len = encode_ATTR(&src->im_attrs[i],
+		if ((len = encode_ATTR(src->im_attrs[i],
 		                       dst + encoded_len,
 		                       dst_size - encoded_len)) < 0) {
 			return len;
@@ -1289,7 +1289,7 @@ static int encode_XIM_OPEN_REPLY(xim_msg_open_reply_t *src, uint8_t *dst, const 
 	for (i = 0; i < num_icattrs; i++) {
 		int len;
 
-		if ((len = encode_ATTR(&src->ic_attrs[i],
+		if ((len = encode_ATTR(src->ic_attrs[i],
 		                       dst + encoded_len,
 		                       dst_size - encoded_len)) < 0) {
 			return len;

@@ -170,8 +170,8 @@ typedef struct {
 	xim_msg_t hdr;
 
 	int id;
-	const attr_t *im_attrs;
-	const attr_t *ic_attrs;
+	attr_t **im_attrs;
+	attr_t **ic_attrs;
 } xim_msg_open_reply_t;
 
 typedef struct {
