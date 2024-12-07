@@ -19,16 +19,23 @@
  */
 
 #include "inputcontext.h"
+#include "inputmethod.h"
+#include "ximtypes.h"
 #include <errno.h>
 #include <stdlib.h>
 
 struct input_context {
-
+	struct {
+		const attr_t *attr;
+		attr_value_t *value;
+	} attrs[IM_ICATTR_MAX];
 };
 
-int input_context_new(input_context_t **ic)
+int input_context_new(input_context_t **ic, input_method_t *im)
 {
 	input_context_t *context;
+	int err;
+	int i;
 
 	if (!ic) {
 		return -EINVAL;
@@ -38,14 +45,35 @@ int input_context_new(input_context_t **ic)
 		return -ENOMEM;
 	}
 
-	*ic = context;
-	return 0;
+	for (i = err = 0; i < IM_ICATTR_MAX; i++) {
+		context->attrs[i].attr = im->ic_attrs[i].attr;
+
+		if (im->ic_attrs[i].value) {
+			if ((err = attr_value_clone(&context->attrs[i].value, im->ic_attrs[i].value)) < 0) {
+				break;
+			}
+		}
+	}
+
+	if (err) {
+		input_context_free(&context);
+	} else {
+		*ic = context;
+	}
+
+	return err;
 }
 
 int input_context_free(input_context_t **ic)
 {
+	int i;
+
 	if (!ic || !*ic) {
 		return -EINVAL;
+	}
+
+	for (i = 0; i < IM_ICATTR_MAX; i++) {
+		attr_value_free(&(*ic)->attrs[i].value);
 	}
 
 	free(*ic);

@@ -22,8 +22,9 @@
 #define INPUTCONTEXT_H
 
 typedef struct input_context input_context_t;
+typedef struct input_method input_method_t;
 
-int input_context_new(input_context_t **ic);
+int input_context_new(input_context_t **ic, input_method_t *im);
 int input_context_free(input_context_t **ic);
 
 #endif /* INPUTCONTEXT_H */
