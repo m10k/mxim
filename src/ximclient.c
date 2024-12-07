@@ -406,6 +406,66 @@ static void handle_create_ic_msg(xim_client_t *client, xim_msg_create_ic_t *msg)
 	return;
 }
 
+static void handle_get_ic_values_msg(xim_client_t *client, xim_msg_get_ic_values_t *msg)
+{
+	input_method_t *im;
+	input_context_t *ic;
+	attr_value_t **values;
+	int num_values;
+	int err;
+	int i;
+
+	err = 0;
+	values = NULL;
+	num_values = 0;
+
+	if (msg->im <= 0 || msg->im > CLIENT_IM_MAX ||
+	    !(im = client->ims[msg->im - 1])) {
+		xim_client_send_error(client, msg->im, msg->ic, XIM_ERROR_BAD_SOMETHING, "Invalid IM id");
+		return;
+	}
+
+	if (msg->ic <= 0 || msg->ic > CLIENT_IC_MAX ||
+	    !(ic = client->ics[msg->ic - 1])) {
+		xim_client_send_error(client, msg->im, msg->ic, XIM_ERROR_BAD_SOMETHING, "Invalid IC id");
+		return;
+	}
+
+	if (!(values = calloc(msg->num_attrs + 1, sizeof(*values)))) {
+		xim_client_send_error(client, msg->im, msg->ic, XIM_ERROR_BAD_ALLOC,
+		                      "Cannot allocate memory for attributes");
+		return;
+	}
+
+	for (i = 0; i < msg->num_attrs; i++) {
+		if ((err = input_context_get_attribute(ic, msg->attrs[i], &values[i])) < 0) {
+			xim_client_send_error(client, msg->im, msg->ic, XIM_ERROR_BAD_SOMETHING,
+			                      "Could not get IC value: %s", strerror(-err));
+			break;
+		}
+
+		num_values++;
+	}
+
+	if (!err) {
+		xim_msg_get_ic_values_reply_t reply;
+
+		reply.hdr.type = XIM_GET_IC_VALUES_REPLY;
+		reply.hdr.subtype = 0;
+		reply.im = msg->im;
+		reply.ic = msg->ic;
+		reply.num_values = num_values;
+		reply.values = values;
+
+		if ((err = xim_client_send(client, (xim_msg_t*)&reply)) < 0) {
+			fprintf(stderr, "xim_client_send: %s\n", strerror(-err));
+		}
+	}
+
+	attr_values_free(&values);
+	return;
+}
+
 static void _xim_client_handle_msg(xim_client_t *client, xim_msg_t *msg)
 {
 	fprintf(stderr, "Handling message\n");
@@ -461,6 +521,12 @@ static void _xim_client_handle_msg(xim_client_t *client, xim_msg_t *msg)
 	case XIM_CREATE_IC:
 		fprintf(stderr, "XIM_CREATE_IC\n");
 		handle_create_ic_msg(client, (xim_msg_create_ic_t*)msg);
+		break;
+
+
+	case XIM_GET_IC_VALUES:
+		fprintf(stderr, "XIM_GET_IC_VALUES\n");
+		handle_get_ic_values_msg(client, (xim_msg_get_ic_values_t*)msg);
 		break;
 
 	default:
