@@ -21,10 +21,14 @@
 #ifndef INPUTCONTEXT_H
 #define INPUTCONTEXT_H
 
+#include "ximtypes.h"
+
 typedef struct input_context input_context_t;
 typedef struct input_method input_method_t;
 
 int input_context_new(input_context_t **ic, input_method_t *im);
 int input_context_free(input_context_t **ic);
+int input_context_set_attribute(input_context_t *ic, attr_value_t *val);
+int input_context_get_attribute(input_context_t *ic, int id, attr_value_t **val);
 
 #endif /* INPUTCONTEXT_H */

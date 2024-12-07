@@ -80,3 +80,46 @@ int input_context_free(input_context_t **ic)
 	*ic = NULL;
 	return 0;
 }
+
+int input_context_set_attribute(input_context_t *ic, attr_value_t *val)
+{
+	attr_value_t *clone;
+	int err;
+	int idx;
+
+	if (!ic || !val) {
+		return -EINVAL;
+	}
+
+	if (val->id == 0 || val->id > IM_ICATTR_MAX) {
+		return -EBADSLT;
+	}
+
+	idx = val->id - 1;
+
+	if ((err = attr_value_clone(&clone, val)) < 0) {
+		return err;
+	}
+
+	attr_value_free(&ic->attrs[idx].value);
+	ic->attrs[idx].value = clone;
+
+	return 0;
+}
+
+int input_context_get_attribute(input_context_t *ic, int id, attr_value_t **val)
+{
+	int idx;
+
+	if (!ic || !val || id <= 0 || id > IM_ICATTR_MAX) {
+		return -EINVAL;
+	}
+
+	idx = id - 1;
+
+	if (!ic->attrs[idx].value) {
+		return -ENOENT;
+	}
+
+	return attr_value_clone(val, ic->attrs[idx].value);
+}
