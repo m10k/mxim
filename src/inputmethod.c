@@ -50,3 +50,115 @@ input_method_t* input_method_for_locale(const char *locale)
 
 	return NULL;
 }
+
+static int _count_im_attrs(input_method_t *im)
+{
+	int count;
+	int i;
+
+	if (!im) {
+		return -EINVAL;
+	}
+
+	for (count = i = 0; i < IM_IMATTR_MAX; i++) {
+		if (im->im_attrs[i].attr) {
+			count++;
+		}
+	}
+
+	return count;
+}
+
+static int _count_ic_attrs(input_method_t *im)
+{
+	int count;
+	int i;
+
+	if (!im) {
+		return -EINVAL;
+	}
+
+	for (count = i = 0; i < IM_ICATTR_MAX; i++) {
+		if (im->ic_attrs[i].attr) {
+			count++;
+		}
+	}
+
+	return count;
+}
+
+int input_method_get_im_attrs(input_method_t *im, attr_t ***dst)
+{
+	attr_t **attrs;
+	int num_attrs;
+	int src_idx;
+	int dst_idx;
+
+	if ((num_attrs = _count_im_attrs(im)) < 0) {
+		return num_attrs;
+	}
+
+	if (!(attrs = calloc(num_attrs + 1, sizeof(*attrs)))) {
+		return -ENOMEM;
+	}
+
+	for (src_idx = dst_idx = 0; src_idx < IM_IMATTR_MAX; src_idx++) {
+		const attr_t *src_attr;
+		attr_t *attr;
+		int err;
+
+		/* attributes array may be fragmented */
+		if (!(src_attr = im->im_attrs[src_idx].attr)) {
+			continue;
+		}
+
+		if ((err = attr_clone(&attr, src_attr)) < 0) {
+			attrs_free(&attrs);
+			return err;
+		}
+
+		/* the position in the array + 1 is the attribute id */
+		attr->id = src_idx + 1;
+		attrs[dst_idx++] = attr;
+	}
+
+	*dst = attrs;
+	return 0;
+}
+
+int input_method_get_ic_attrs(input_method_t *im, attr_t ***dst)
+{
+	attr_t **attrs;
+	int num_attrs;
+	int src_idx;
+	int dst_idx;
+
+	if ((num_attrs = _count_ic_attrs(im)) < 0) {
+		return num_attrs;
+	}
+
+	if (!(attrs = calloc(num_attrs + 1, sizeof(*attrs)))) {
+		return -ENOMEM;
+	}
+
+	for (src_idx = dst_idx = 0; src_idx < IM_ICATTR_MAX; src_idx++) {
+		const attr_t *src_attr;
+		attr_t *attr;
+		int err;
+
+		if (!(src_attr = im->ic_attrs[src_idx].attr)) {
+			continue;
+		}
+
+		if ((err = attr_clone(&attr, im->ic_attrs[src_idx].attr)) < 0) {
+			attrs_free(&attrs);
+			return err;
+		}
+
+		attr->id = src_idx + 1;
+		attrs[dst_idx++] = attr;
+	}
+
+	*dst = attrs;
+	return 0;
+}

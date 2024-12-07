@@ -26,6 +26,9 @@
 #include <stdint.h>
 #include <X11/Xlib.h>
 
+#define IM_IMATTR_MAX 8
+#define IM_ICATTR_MAX 8
+
 typedef struct input_method input_method_t;
 
 struct input_method {
@@ -33,12 +36,16 @@ struct input_method {
 	XIMStyle input_style;
 
 	/* Attributes of the input method */
-	const attr_t *im_attrs;
-	attr_value_t **im_values;
+	struct {
+		const attr_t *attr;
+		attr_value_t *value;
+	} im_attrs[IM_IMATTR_MAX];
 
 	/* The attributes and default values of input contexts */
-	const attr_t *ic_attrs;
-	attr_value_t **ic_values;
+	struct {
+		const attr_t *attr;
+		attr_value_t *value;
+	} ic_attrs[IM_ICATTR_MAX];
 
 	/* The locale that is supported by the IM. NULL for any */
 	char *locale;
@@ -54,5 +61,7 @@ struct input_method {
 };
 
 input_method_t* input_method_for_locale(const char *locale);
+int input_method_get_im_attrs(input_method_t *im, attr_t ***attrs);
+int input_method_get_ic_attrs(input_method_t *im, attr_t ***attrs);
 
 #endif /* INPUTMETHOD_H */
