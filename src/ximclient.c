@@ -29,6 +29,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+#define CLIENT_IC_MAX 16
 #define CLIENT_IM_MAX 16
 
 struct xim_client {
@@ -36,6 +37,7 @@ struct xim_client {
 	uint8_t rxbuf[1024];
 	size_t rxbuf_len;
 
+	input_context_t *ics[CLIENT_IC_MAX];
 	input_method_t *ims[CLIENT_IM_MAX];
 };
 
@@ -331,8 +333,8 @@ static void handle_get_im_values_msg(xim_client_t *client, xim_msg_get_im_values
 
 	for (i = 0; i < msg->num_attrs; i++) {
 		int idx;
-
 		/* FIXME: check if index is valid */
+
 		idx = msg->attrs[i] - 1;
 		reply.values[i] = im->im_attrs[idx].value;
 		reply.num_values++;
@@ -343,6 +345,64 @@ static void handle_get_im_values_msg(xim_client_t *client, xim_msg_get_im_values
 	}
 
 	free(reply.values);
+	return;
+}
+
+static void handle_create_ic_msg(xim_client_t *client, xim_msg_create_ic_t *msg)
+{
+	xim_msg_create_ic_reply_t reply;
+	input_method_t *im;
+	input_context_t *ic;
+	int err;
+	int id;
+	int i;
+
+	if (msg->im <= 0 || msg->im > CLIENT_IM_MAX ||
+	    !(im = client->ims[msg->im - 1])) {
+		xim_client_send_error(client, msg->im, 0, XIM_ERROR_BAD_SOMETHING,
+		                      "Invalid IM id");
+		return;
+	}
+
+	for (i = id = 0; i < (sizeof(client->ics) / sizeof(client->ics[0])); i++) {
+		if (!client->ics[i]) {
+			id = i + 1;
+			break;
+		}
+	}
+
+	if (!id) {
+		xim_client_send_error(client, msg->im, 0, XIM_ERROR_BAD_ALLOC,
+		                      "Client has reached the maximum number of open input contexts");
+		/* TODO: Handle error */
+		return;
+	}
+
+	if ((err = input_context_new(&ic, im)) < 0) {
+		xim_client_send_error(client, msg->im, 0, XIM_ERROR_BAD_ALLOC,
+		                      "Could not allocate input context: %s", strerror(-err));
+		/* TODO: Handle error */
+		return;
+	}
+
+	for (i = 0; i < msg->num_values; i++) {
+		if ((err = input_context_set_attribute(ic, msg->values[i])) < 0) {
+			/* TODO: Handle error */
+		}
+	}
+
+	client->ics[id - 1] = ic;
+
+	reply.hdr.type = XIM_CREATE_IC_REPLY;
+	reply.hdr.subtype = 0;
+	reply.im = msg->im;
+	reply.ic = id;
+
+	if ((err = xim_client_send(client, (xim_msg_t*)&reply)) < 0) {
+		fprintf(stderr, "xim_client_send: %s\n", strerror(-err));
+		/* TODO: Handle error */
+	}
+
 	return;
 }
 
@@ -396,6 +456,11 @@ static void _xim_client_handle_msg(xim_client_t *client, xim_msg_t *msg)
 	case XIM_GET_IM_VALUES:
 		fprintf(stderr, "XIM_GET_IM_VALUES\n");
 		handle_get_im_values_msg(client, (xim_msg_get_im_values_t*)msg);
+		break;
+
+	case XIM_CREATE_IC:
+		fprintf(stderr, "XIM_CREATE_IC\n");
+		handle_create_ic_msg(client, (xim_msg_create_ic_t*)msg);
 		break;
 
 	default:
