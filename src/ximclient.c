@@ -485,6 +485,51 @@ static void handle_get_ic_values_msg(xim_client_t *client, xim_msg_get_ic_values
 	return;
 }
 
+static void send_sync_reply(xim_client_t *client, int im, int ic)
+{
+	xim_msg_sync_reply_t sync;
+
+	sync.hdr.type = XIM_SYNC_REPLY;
+	sync.hdr.subtype = 0;
+	sync.im = im;
+	sync.ic = ic;
+
+	xim_client_send(client, (xim_msg_t*)&sync);
+}
+
+static void handle_forward_event_msg(xim_client_t *client, xim_msg_forward_event_t *msg)
+{
+	input_method_t *im;
+	input_context_t *ic;
+
+	if (msg->im <= 0 || msg->im > CLIENT_IM_MAX || !(im = client->ims[msg->im - 1])) {
+		xim_client_send_error(client, msg->im, msg->ic, XIM_ERROR_BAD_SOMETHING, "Invalid IM id");
+		return;
+	}
+
+	if (msg->ic <= 0 || msg->ic > CLIENT_IC_MAX || !(ic = client->ics[msg->ic - 1])) {
+		xim_client_send_error(client, msg->im, msg->ic, XIM_ERROR_BAD_SOMETHING, "Invalid IC id");
+		return;
+	}
+
+	fprintf(stderr,
+	        "XIM_FORWARD_EVENT:\n"
+	        " IM     = %d\n"
+	        " IC     = %d\n"
+	        " flags  = %x\n"
+	        " serial = %d\n"
+	        " event  = %d\n",
+	        msg->im, msg->ic, msg->flags,
+	        msg->serial, msg->event.detail);
+
+	if (im->event(im, ic, msg->flags, msg->serial, &msg->event) < 0) {
+		msg->flags &= ~XIM_FORWARD_EVENT_FLAG_SYNC;
+		xim_client_send(client, (xim_msg_t*)msg);
+	}
+
+	send_sync_reply(client, msg->im, msg->ic);
+}
+
 static void _xim_client_handle_msg(xim_client_t *client, xim_msg_t *msg)
 {
 	fprintf(stderr, "Handling message\n");
@@ -546,6 +591,11 @@ static void _xim_client_handle_msg(xim_client_t *client, xim_msg_t *msg)
 	case XIM_GET_IC_VALUES:
 		fprintf(stderr, "XIM_GET_IC_VALUES\n");
 		handle_get_ic_values_msg(client, (xim_msg_get_ic_values_t*)msg);
+		break;
+
+	case XIM_FORWARD_EVENT:
+		fprintf(stderr, "XIM_FORWARD_EVENT\n");
+		handle_forward_event_msg(client, (xim_msg_forward_event_t*)msg);
 		break;
 
 	default:
