@@ -156,6 +156,23 @@ static void handle_connect_msg(xim_client_t *client, xim_msg_connect_t *msg)
 	return;
 }
 
+static void set_event_mask(xim_client_t *client, const int im, const int ic, const uint32_t mask)
+{
+	xim_msg_set_event_mask_t msg;
+	int err;
+
+	msg.hdr.type = XIM_SET_EVENT_MASK;
+	msg.hdr.subtype = 0;
+	msg.im = im;
+	msg.ic = ic;
+	msg.masks.forward = mask;
+	msg.masks.sync = mask;
+
+	if ((err = xim_client_send(client, (xim_msg_t*)&msg)) < 0) {
+		fprintf(stderr, "xim_client_send: %s\n", strerror(-err));
+	}
+}
+
 static void handle_open_msg(xim_client_t *client, xim_msg_open_t *msg)
 {
 	input_method_t *im;
@@ -213,6 +230,8 @@ static void handle_open_msg(xim_client_t *client, xim_msg_open_t *msg)
 				fprintf(stderr, "xim_client_send: %s\n", strerror(-err));
 				/* FIXME: handle error */
 			}
+
+			set_event_mask(client, id, 0, KeyPressMask);
 		}
 
 		attrs_free(&reply.im_attrs);
