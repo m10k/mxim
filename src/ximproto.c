@@ -1004,6 +1004,7 @@ static int decode_XIM_FORWARD_EVENT(xim_msg_t **dst, const struct XIM_FORWARD_EV
 	msg->serial = src->serial;
 	memmove(&msg->event, &src->event, sizeof(msg->event));
 
+	*dst = (xim_msg_t*)msg;
 	return sizeof(*src);
 }
 
