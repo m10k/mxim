@@ -22,6 +22,7 @@
 #define INPUTMETHOD_H
 
 #include "ximtypes.h"
+#include "ximproto.h"
 #include "inputcontext.h"
 #include <stdint.h>
 #include <X11/Xlib.h>
@@ -57,7 +58,7 @@ struct input_method {
 	const char **encodings;
 
 	/* Event handler called for each XIM_FORWARD_EVENT message */
-	int (*event)(input_method_t*, input_context_t*, int, int, XEvent*);
+	int (*event)(input_method_t*, input_context_t*, int, int, struct XCoreKeyEvent*);
 };
 
 input_method_t* input_method_for_locale(const char *locale);
