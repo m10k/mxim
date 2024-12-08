@@ -252,7 +252,7 @@ struct XIM_FORWARD_EVENT {
 	uint16_t ic;
 	uint16_t flag;
 	uint16_t serial;
-	XEvent event;
+	struct XCoreKeyEvent event;
 };
 
 struct XIM_SET_EVENT_MASK {

@@ -368,6 +368,23 @@ typedef struct {
 	} string;
 } xim_msg_commit_t;
 
+struct XCoreKeyEvent {
+	uint8_t type;
+	uint8_t detail;
+	uint16_t sequence_number;
+	uint32_t time;
+	uint32_t root;
+	uint32_t event;
+	uint32_t child;
+	int16_t root_x;
+	int16_t root_y;
+	int16_t event_x;
+	int16_t event_y;
+	uint16_t state;
+	uint8_t same_screen;
+	uint8_t unused;
+} __attribute__((packed));
+
 typedef struct {
 	xim_msg_t hdr;
 
@@ -375,7 +392,7 @@ typedef struct {
 	int ic;
 	xim_forward_event_flags_t flags;
 	int serial;
-	XEvent event;
+	struct XCoreKeyEvent event;
 } xim_msg_forward_event_t;
 
 typedef struct {
