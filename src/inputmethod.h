@@ -21,6 +21,7 @@
 #ifndef INPUTMETHOD_H
 #define INPUTMETHOD_H
 
+#include "keysym.h"
 #include "ximtypes.h"
 #include "ximproto.h"
 #include "inputcontext.h"
@@ -58,7 +59,7 @@ struct input_method {
 	const char **encodings;
 
 	/* Event handler called for each XIM_FORWARD_EVENT message */
-	int (*event)(input_method_t*, input_context_t*, int, int, struct XCoreKeyEvent*);
+	int (*event)(input_method_t*, input_context_t*, keysym_t*);
 };
 
 input_method_t* input_method_for_locale(const char *locale);
