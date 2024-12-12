@@ -31,4 +31,7 @@ int input_context_free(input_context_t **ic);
 int input_context_set_attribute(input_context_t *ic, attr_value_t *val);
 int input_context_get_attribute(input_context_t *ic, int id, attr_value_t **val);
 
+int input_context_set_data(input_context_t *ic, void *priv);
+int input_context_get_data(input_context_t *ic, void **priv);
+
 #endif /* INPUTCONTEXT_H */

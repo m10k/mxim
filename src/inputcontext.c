@@ -29,6 +29,8 @@ struct input_context {
 		const attr_t *attr;
 		attr_value_t *value;
 	} attrs[IM_ICATTR_MAX];
+
+	void *priv;
 };
 
 int input_context_new(input_context_t **ic, input_method_t *im)
@@ -122,4 +124,24 @@ int input_context_get_attribute(input_context_t *ic, int id, attr_value_t **val)
 	}
 
 	return attr_value_clone(val, ic->attrs[idx].value);
+}
+
+int input_context_set_data(input_context_t *ic, void *data)
+{
+	if (!ic) {
+		return -EINVAL;
+	}
+
+	ic->priv = data;
+	return 0;
+}
+
+int input_context_get_data(input_context_t *ic, void **data)
+{
+	if (!ic || !data) {
+		return -EINVAL;
+	}
+
+	*data = ic->priv;
+	return 0;
 }
