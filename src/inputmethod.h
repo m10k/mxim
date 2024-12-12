@@ -58,6 +58,9 @@ struct input_method {
 	/* The encodings supported by the IM */
 	const char **encodings;
 
+	/* Event handler called after an Input Context has been created */
+	int (*ic_created)(input_method_t*, input_context_t*);
+
 	/* Event handler called for each XIM_FORWARD_EVENT message */
 	int (*event)(input_method_t*, input_context_t*, keysym_t*);
 };

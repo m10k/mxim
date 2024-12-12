@@ -410,6 +410,12 @@ static void handle_create_ic_msg(xim_client_t *client, xim_msg_create_ic_t *msg)
 		}
 	}
 
+	if (im->ic_created && ((err = im->ic_created(im, ic)) < 0)) {
+		xim_client_send_error(client, msg->im, 0, XIM_ERROR_BAD_SOMETHING,
+		                      "Could not initialize input context: %s", strerror(-err));
+		/* TODO: Handle error */
+	}
+
 	client->ics[id - 1] = ic;
 
 	reply.hdr.type = XIM_CREATE_IC_REPLY;
