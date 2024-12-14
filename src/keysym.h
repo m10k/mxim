@@ -138,9 +138,9 @@ typedef enum {
 
 typedef enum {
 	MOD_SHIFT = (1 << 0),
-	MOD_CTRL  = (1 << 2),
-	MOD_ALT   = (1 << 3),
-	MOD_SUPER = (1 << 6)
+	MOD_CTRL  = (1 << 1),
+	MOD_ALT   = (1 << 2),
+	MOD_SUPER = (1 << 3)
 } modmask_t;
 
 typedef struct {

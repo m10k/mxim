@@ -20,6 +20,7 @@
 
 #include "keysym.h"
 #include <errno.h>
+#include <X11/X.h>
 
 static const keycode_t _keymap[] = {
 	[0]   = KEY_INVALID,
@@ -171,6 +172,28 @@ static keycode_t keycode_from_detail(const int detail)
 	return _keymap[idx];
 }
 
+static modmask_t modmask_from_state(const int state)
+{
+	modmask_t mask;
+
+	mask = 0;
+
+	if (state & ShiftMask) {
+		mask |= MOD_SHIFT;
+	}
+	if (state & ControlMask) {
+		mask |= MOD_CTRL;
+	}
+	if (state & Mod1Mask) {
+		mask |= MOD_ALT;
+	}
+	if (state & Mod4Mask) {
+		mask |= MOD_SUPER;
+	}
+
+	return mask;
+}
+
 int keysym_from_event(keysym_t *keysym, struct XCoreKeyEvent *event)
 {
 	keycode_t key;
@@ -180,7 +203,7 @@ int keysym_from_event(keysym_t *keysym, struct XCoreKeyEvent *event)
 	}
 
 	keysym->key = key;
-        keysym->mod = event->state;
+	keysym->mod = modmask_from_state(event->state);
 
 	return 0;
 }
