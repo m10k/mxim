@@ -24,8 +24,12 @@
 #include "fd.h"
 
 typedef struct xim_client xim_client_t;
+typedef struct input_method input_method_t;
+typedef struct input_context input_context_t;
 
 int xim_client_new(xim_client_t **client, fd_t *fd);
 int xim_client_free(xim_client_t **client);
+int xim_client_get_im(xim_client_t *client, const int id, input_method_t **im);
+int xim_client_get_ic(xim_client_t *client, const int id, input_context_t **ic);
 
 #endif /* XIMCLIENT_H */

@@ -20,6 +20,7 @@
 
 #include "fd.h"
 #include "inputmethod.h"
+#include "inputcontext.h"
 #include "ximclient.h"
 #include "ximproto.h"
 #include <errno.h>
@@ -685,5 +686,25 @@ int xim_client_free(xim_client_t **client)
 	free(*client);
 	*client = NULL;
 
+	return 0;
+}
+
+int xim_client_get_im(xim_client_t *client, const int id, input_method_t **im)
+{
+	if (!client || id <= 0 || id > CLIENT_IM_MAX || !im) {
+		return -EINVAL;
+	}
+
+	*im = client->ims[id - 1];
+	return 0;
+}
+
+int xim_client_get_ic(xim_client_t *client, const int id, input_context_t **ic)
+{
+	if (!client || id <= 0 || id > CLIENT_IC_MAX || !ic) {
+		return -EINVAL;
+	}
+
+	*ic = client->ics[id - 1];
 	return 0;
 }
