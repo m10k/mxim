@@ -42,7 +42,7 @@ struct XIM_ERROR {
 	uint16_t detail_len;
 	uint16_t detail_type;
 	uint8_t detail[];
-};
+} __attribute__((packed));
 
 struct XIM_CONNECT {
 	uint8_t byte_order;
@@ -69,7 +69,7 @@ struct XIM_CONNECT_REPLY {
 struct XIM_OPEN {
 	uint8_t len;
 	char str[];
-};
+} __attribute__((packed));
 
 struct XIM_OPEN_REPLY {
 	uint16_t im_id;
@@ -78,30 +78,30 @@ struct XIM_OPEN_REPLY {
 	/* length of LISTofXICATTR */
 	/* 2 bytes padding */
 	/* LISTofXICATTR */
-};
+} __attribute__((packed));
 
 struct XIM_CLOSE {
 	uint16_t im;
 	uint16_t unused;
-};
+} __attribute__((packed));
 
 struct XIM_CLOSE_REPLY {
 	uint16_t im;
 	uint16_t unused;
-};
+} __attribute__((packed));
 
 struct XIM_QUERY_EXTENSION {
 	uint16_t im;
 	uint16_t exts_len;
 	char exts[];
 	/* pad */
-};
+} __attribute__((packed));
 
 struct XIM_QUERY_EXTENSION_REPLY {
 	uint16_t im;
 	uint16_t exts_len;
 	uint8_t exts[];
-};
+} __attribute__((packed));
 
 struct XIM_ENCODING_NEGOTIATION {
 	uint16_t im;
@@ -110,62 +110,62 @@ struct XIM_ENCODING_NEGOTIATION {
 	/* length of encoding details */
 	/* 2 bytes padding */
 	/* list of encoding details */
-};
+} __attribute__((packed));
 
 struct XIM_ENCODING_NEGOTIATION_REPLY {
 	uint16_t im;
 	uint16_t category;
 	int16_t encoding;
 	uint16_t unused;
-};
+} __attribute__((packed));
 
 struct XIM_GET_IM_VALUES {
 	uint16_t im;
 	uint16_t len_attrs;
 	uint16_t attrs[];
-};
+} __attribute__((packed));
 
 struct XIM_GET_IM_VALUES_REPLY {
 	uint16_t im;
 	uint16_t len_values;
 	uint8_t values[];
-};
+} __attribute__((packed));
 
 struct XIM_SET_IM_VALUES {
 	uint16_t im;
 	uint16_t len_values;
 	uint8_t values[];
-};
+} __attribute__((packed));
 
 struct XIM_SET_IM_VALUES_REPLY {
 	uint16_t im;
 	uint16_t unused;
-};
+} __attribute__((packed));
 
 struct XIM_CREATE_IC {
 	uint16_t im;
 	uint16_t len_values;
 	uint8_t values[];
-};
+} __attribute__((packed));
 
 struct XIM_CREATE_IC_REPLY {
 	uint16_t im;
 	uint16_t ic;
-};
+} __attribute__((packed));
 
 struct XIM_GET_IC_VALUES {
 	uint16_t im;
 	uint16_t ic;
 	uint16_t len_attrs;
 	uint16_t attrs[];
-};
+} __attribute__((packed));
 
 struct XIM_GET_IC_VALUES_REPLY {
 	uint16_t im;
 	uint16_t ic;
 	uint16_t len_values;
 	uint8_t values[];
-};
+} __attribute__((packed));
 
 struct XIM_SET_IC_VALUES {
 	uint16_t im;
@@ -173,54 +173,54 @@ struct XIM_SET_IC_VALUES {
 	uint16_t len_values;
 	uint16_t unused;
 	uint8_t values[];
-};
+} __attribute__((packed));
 
 struct XIM_SET_IC_VALUES_REPLY {
 	uint16_t im;
 	uint16_t ic;
-};
+} __attribute__((packed));
 
 struct XIM_SET_IC_FOCUS {
 	uint16_t im;
 	uint16_t ic;
-};
+} __attribute__((packed));
 
 struct XIM_UNSET_IC_FOCUS {
 	uint16_t im;
 	uint16_t ic;
-};
+} __attribute__((packed));
 
 struct XIM_DESTROY_IC {
 	uint16_t im;
 	uint16_t ic;
-};
+} __attribute__((packed));
 
 struct XIM_DESTROY_IC_REPLY {
 	uint16_t im;
 	uint16_t ic;
-};
+} __attribute__((packed));
 
 struct XIM_SYNC {
 	uint16_t im;
 	uint16_t ic;
-};
+} __attribute__((packed));
 
 struct XIM_SYNC_REPLY {
 	uint16_t im;
 	uint16_t ic;
-};
+} __attribute__((packed));
 
 struct XIM_RESET_IC {
 	uint16_t im;
 	uint16_t ic;
-};
+} __attribute__((packed));
 
 struct XIM_RESET_IC_REPLY {
 	uint16_t im;
 	uint16_t ic;
 	uint16_t len_preedit;
 	uint8_t preedit[];
-};
+} __attribute__((packed));
 
 struct XIM_COMMIT {
 	uint16_t im;
@@ -245,7 +245,7 @@ struct XIM_COMMIT {
 			uint8_t string[];
 		} both;
 	} data;
-};
+} __attribute__((packed));
 
 struct XIM_FORWARD_EVENT {
 	uint16_t im;
@@ -253,7 +253,7 @@ struct XIM_FORWARD_EVENT {
 	uint16_t flag;
 	uint16_t serial;
 	struct XCoreKeyEvent event;
-};
+} __attribute__((packed));
 
 struct XIM_SET_EVENT_MASK {
 	uint16_t im;
@@ -262,7 +262,7 @@ struct XIM_SET_EVENT_MASK {
 		uint32_t forward;
 		uint32_t sync;
 	} masks;
-};
+} __attribute__((packed));
 
 static const struct {
 	xim_msg_type_t type;
