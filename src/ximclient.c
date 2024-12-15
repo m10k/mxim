@@ -398,7 +398,7 @@ static void handle_create_ic_msg(xim_client_t *client, xim_msg_create_ic_t *msg)
 		return;
 	}
 
-	if ((err = input_context_new(&ic, im, client)) < 0) {
+	if ((err = input_context_new(&ic, client, msg->im, id)) < 0) {
 		xim_client_send_error(client, msg->im, 0, XIM_ERROR_BAD_ALLOC,
 		                      "Could not allocate input context: %s", strerror(-err));
 		/* TODO: Handle error */

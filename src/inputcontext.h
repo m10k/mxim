@@ -27,7 +27,7 @@
 typedef struct input_context input_context_t;
 typedef struct input_method input_method_t;
 
-int input_context_new(input_context_t **ic, input_method_t *im, xim_client_t *client);
+int input_context_new(input_context_t **dst, xim_client_t *client, const int im, const int ic);
 int input_context_free(input_context_t **ic);
 int input_context_set_attribute(input_context_t *ic, attr_value_t *val);
 int input_context_get_attribute(input_context_t *ic, int id, attr_value_t **val);

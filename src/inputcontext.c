@@ -26,6 +26,9 @@
 #include <stdlib.h>
 
 struct input_context {
+	int im;
+	int ic;
+
 	struct {
 		const attr_t *attr;
 		attr_value_t *value;
@@ -35,14 +38,19 @@ struct input_context {
 	void *priv;
 };
 
-int input_context_new(input_context_t **ic, input_method_t *im, xim_client_t *client)
+int input_context_new(input_context_t **dst, xim_client_t *client, const int im, const int ic)
 {
+	input_method_t *method;
 	input_context_t *context;
 	int err;
 	int i;
 
-	if (!ic) {
+	if (!dst) {
 		return -EINVAL;
+	}
+
+	if ((err = xim_client_get_im(client, im, &method)) < 0) {
+		return err;
 	}
 
 	if (!(context = calloc(1, sizeof(*context)))) {
@@ -50,12 +58,15 @@ int input_context_new(input_context_t **ic, input_method_t *im, xim_client_t *cl
 	}
 
 	context->client = client;
+	context->im = im;
+	context->ic = ic;
 
 	for (i = err = 0; i < IM_ICATTR_MAX; i++) {
-		context->attrs[i].attr = im->ic_attrs[i].attr;
+		context->attrs[i].attr = method->ic_attrs[i].attr;
 
-		if (im->ic_attrs[i].value) {
-			if ((err = attr_value_clone(&context->attrs[i].value, im->ic_attrs[i].value)) < 0) {
+		if (method->ic_attrs[i].value) {
+			if ((err = attr_value_clone(&context->attrs[i].value,
+			                            method->ic_attrs[i].value)) < 0) {
 				break;
 			}
 		}
@@ -64,7 +75,7 @@ int input_context_new(input_context_t **ic, input_method_t *im, xim_client_t *cl
 	if (err) {
 		input_context_free(&context);
 	} else {
-		*ic = context;
+		*dst = context;
 	}
 
 	return err;
