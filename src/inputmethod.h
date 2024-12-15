@@ -21,6 +21,7 @@
 #ifndef INPUTMETHOD_H
 #define INPUTMETHOD_H
 
+#include "cmd.h"
 #include "keysym.h"
 #include "ximtypes.h"
 #include "ximproto.h"
@@ -58,6 +59,8 @@ struct input_method {
 	/* The encodings supported by the IM */
 	const char **encodings;
 
+	cmd_func_t *cmds[CMD_LAST];
+
 	/* Event handler called after an Input Context has been created */
 	int (*ic_created)(input_method_t*, input_context_t*);
 
@@ -68,5 +71,6 @@ struct input_method {
 input_method_t* input_method_for_locale(const char *locale);
 int input_method_get_im_attrs(input_method_t *im, attr_t ***attrs);
 int input_method_get_ic_attrs(input_method_t *im, attr_t ***attrs);
+int input_method_handle_key(input_method_t *im, input_context_t *ic, keysym_t *ks);
 
 #endif /* INPUTMETHOD_H */

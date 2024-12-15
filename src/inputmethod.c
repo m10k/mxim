@@ -18,6 +18,8 @@
  * Boston, MA 02111-1307, USA.
  */
 
+#include "config.h"
+#include "cmd.h"
 #include "ximproto.h"
 #include "inputmethod.h"
 #include <errno.h>
@@ -161,4 +163,19 @@ int input_method_get_ic_attrs(input_method_t *im, attr_t ***dst)
 
 	*dst = attrs;
 	return 0;
+}
+
+int input_method_handle_key(input_method_t *im, input_context_t *ic, keysym_t *ks)
+{
+	cmd_def_t *binding;
+	int err;
+
+	binding = &config_keybindings[ks->key][ks->mod];
+
+	if (im->cmds[binding->cmd] &&
+	    (err = im->cmds[binding->cmd](im, ic, &binding->arg)) < 0) {
+		return err;
+	}
+
+	return im->event ? im->event(im, ic, ks) : -1;
 }
