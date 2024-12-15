@@ -20,6 +20,7 @@
 
 #include "inputcontext.h"
 #include "inputmethod.h"
+#include "ximclient.h"
 #include "ximtypes.h"
 #include <errno.h>
 #include <stdlib.h>
@@ -30,10 +31,11 @@ struct input_context {
 		attr_value_t *value;
 	} attrs[IM_ICATTR_MAX];
 
+	xim_client_t *client;
 	void *priv;
 };
 
-int input_context_new(input_context_t **ic, input_method_t *im)
+int input_context_new(input_context_t **ic, input_method_t *im, xim_client_t *client)
 {
 	input_context_t *context;
 	int err;
@@ -46,6 +48,8 @@ int input_context_new(input_context_t **ic, input_method_t *im)
 	if (!(context = calloc(1, sizeof(*context)))) {
 		return -ENOMEM;
 	}
+
+	context->client = client;
 
 	for (i = err = 0; i < IM_ICATTR_MAX; i++) {
 		context->attrs[i].attr = im->ic_attrs[i].attr;
