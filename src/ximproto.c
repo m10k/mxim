@@ -1113,7 +1113,9 @@ int xim_msg_decode(xim_msg_t **dst, const uint8_t *src, const size_t src_len)
 			break;
 
 		case XIM_SYNC:
-			fprintf(stderr, "Decoding XIM_SYNC\n");
+		case XIM_SYNC_REPLY:
+			fprintf(stderr, "Decoding XIM_SYNC%s\n",
+			        hdr->opcode_major == XIM_SYNC_REPLY ? "_REPLY" : "");
 			err = decode_XIM_SYNC(&msg, (struct XIM_SYNC*)(hdr + 1),
 			                      src_len - sizeof(*hdr));
 			break;
