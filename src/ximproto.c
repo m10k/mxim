@@ -1794,6 +1794,7 @@ int xim_msg_encode(xim_msg_t *src, uint8_t *dst, const size_t dst_size)
 		                                          dst_size - sizeof(*hdr));
 		break;
 
+	case XIM_SYNC:
 	case XIM_SYNC_REPLY:
 		payload_len = encode_XIM_SYNC_REPLY((xim_msg_sync_reply_t*)src,
 		                                    (uint8_t*)(hdr + 1),
