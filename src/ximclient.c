@@ -485,7 +485,8 @@ static void handle_forward_event_msg(xim_client_t *client, xim_msg_forward_event
 	input_method_t *im;
 	input_context_t *ic;
 	keysym_t keysym;
-	int filter_event;
+	int need_sync;
+	int return_to_sender;
 
 	if (msg->im <= 0 || msg->im > CLIENT_IM_MAX || !(im = client->ims[msg->im - 1])) {
 		xim_client_send_error(client, msg->im, msg->ic, XIM_ERROR_BAD_SOMETHING, "Invalid IM id");
@@ -508,19 +509,24 @@ static void handle_forward_event_msg(xim_client_t *client, xim_msg_forward_event
 	        msg->im, msg->ic, msg->flags,
 	        msg->serial, msg->event.detail, msg->event.state);
 
-	filter_event = 1;
+	return_to_sender = 0;
+	need_sync = msg->flags & XIM_FORWARD_EVENT_FLAG_SYNC;
 
-	if (keysym_from_event(&keysym, &msg->event) < 0 ||
-	    im->event(im, ic, &keysym) < 0) {
-		filter_event = 0;
+	if (keysym_from_event(&keysym, &msg->event) < 0) {
+		/* don't know what to do with this event */
+		return_to_sender = 1;
+	} else if(input_method_handle_key(im, ic, &keysym) < 0) {
+		/* IM didn't consume the event */
+		return_to_sender = 1;
 	}
 
-	if (!filter_event) {
+	if (return_to_sender) {
 		msg->flags &= ~XIM_FORWARD_EVENT_FLAG_SYNC;
 		xim_client_send(client, (xim_msg_t*)msg);
 	}
-
-	xim_client_sync(client, msg->im, msg->ic, 1);
+	if (need_sync) {
+		xim_client_sync(client, msg->im, msg->ic, 1);
+	}
 }
 
 static void _xim_client_handle_msg(xim_client_t *client, xim_msg_t *msg)
