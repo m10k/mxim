@@ -285,8 +285,6 @@ static void select_encoding(xim_client_t *client, int im, int encoding)
 static void handle_encoding_negotiation_msg(xim_client_t *client, xim_msg_encoding_negotiation_t *msg)
 {
 	input_method_t *im;
-	int err;
-	int i;
 
 	if (!client || !msg || !msg->encodings) {
 		return;
@@ -298,30 +296,8 @@ static void handle_encoding_negotiation_msg(xim_client_t *client, xim_msg_encodi
 		return;
 	}
 
-	if (im->encodings) {
-		for (i = 0; im->encodings[i]; i++) {
-			int j;
-
-			for (j = 0; msg->encodings[j]; j++) {
-				if (strcmp(im->encodings[i], msg->encodings[j]) == 0) {
-					/* XIM_ENCODING_NEGOTIATION_REPLY */
-					fprintf(stderr, "Client supports %s encoding\n", msg->encodings[j]);
-					select_encoding(client, msg->im, j);
-					return;
-				}
-			}
-
-			fprintf(stderr, "Encoding %s not supported by client\n", im->encodings[i]);
-		}
-	}
-
-	/* XIM_ERROR: Server and client don't have any common encodings */
-	if ((err = xim_client_send_error(client, msg->im, 0, XIM_ERROR_BAD_SOMETHING,
-	                                 "Server doesn't support any of the client's encodings")) < 0) {
-		fprintf(stderr, "xim_client_send_error: %s\n", strerror(-err));
-	}
-
-	return;
+	/* Xlib does not implement this correctly. Use default (compound text) encoding */
+	select_encoding(client, msg->im, -1);
 }
 
 static void handle_get_im_values_msg(xim_client_t *client, xim_msg_get_im_values_t *msg)
