@@ -21,6 +21,7 @@
 #include "ximproto.h"
 #include "ximtypes.h"
 #include <errno.h>
+#include <limits.h>
 #include <stddef.h>
 #include <stdint.h>
 #include <stdlib.h>
@@ -1604,15 +1605,48 @@ static int encode_XIM_RESET_IC_REPLY(xim_msg_reset_ic_reply_t *src, uint8_t *dst
 	return padded_len;
 }
 
+static int encode_COMPOUND_TEXT(char **dst, const char *utf8, const size_t utf8_len)
+{
+	static const uint8_t ct_header[]  = { 0x1B, 0x25, 0x47 };
+	static const uint8_t ct_trailer[] = { 0x1B, 0x25, 0x40 };
+	char *ct;
+	size_t ct_len;
+
+	if (SIZE_MAX - sizeof(ct_header) - sizeof(ct_trailer) < utf8_len ||
+	    utf8_len + sizeof(ct_header) + sizeof(ct_trailer) > INT_MAX) {
+		return -EOVERFLOW;
+	}
+
+	ct_len = sizeof(ct_header) + utf8_len + sizeof(ct_trailer);
+
+	if (!(ct = malloc(ct_len))) {
+		return -ENOMEM;
+	}
+
+	memcpy(ct, ct_header, sizeof(ct_header));
+	memcpy(ct + sizeof(ct_header), utf8, utf8_len);
+	memcpy(ct + sizeof(ct_header) + utf8_len, ct_trailer, sizeof(ct_trailer));
+
+	*dst = ct;
+	return (int)ct_len;
+}
+
 static int encode_XIM_COMMIT(xim_msg_commit_t *src, uint8_t *dst, const size_t dst_size)
 {
 	struct XIM_COMMIT *raw;
 	int encoded_len;
 	int padding_len;
 	int padded_len;
+	int ct_len;
+	char *ct;
 
 	if (!src || !dst) {
 		return -EINVAL;
+	}
+
+	ct = NULL;
+	if ((ct_len = encode_COMPOUND_TEXT(&ct, src->string.data, src->string.len)) < 0) {
+		return ct_len;
 	}
 
 	raw = (struct XIM_COMMIT*)dst;
@@ -1622,12 +1656,13 @@ static int encode_XIM_COMMIT(xim_msg_commit_t *src, uint8_t *dst, const size_t d
 		encoded_len += sizeof(raw->data.keysym);
 	}
 	if (src->flags & XIM_COMMIT_FLAG_CHARS) {
-		encoded_len += sizeof(raw->data.chars) + src->string.len;
+		encoded_len += sizeof(raw->data.chars) + ct_len;
 	}
 	padding_len = PAD(encoded_len);
 	padded_len = encoded_len + padding_len;
 
 	if (dst_size < padded_len) {
+		free(ct);
 		return -EMSGSIZE;
 	}
 
@@ -1643,15 +1678,17 @@ static int encode_XIM_COMMIT(xim_msg_commit_t *src, uint8_t *dst, const size_t d
 	if (src->flags & XIM_COMMIT_FLAG_CHARS) {
 		if (src->flags & XIM_COMMIT_FLAG_KEYSYM) {
 			/* have KeySym *AND* Chars */
-			raw->data.both.len_string = src->string.len;
-			memmove(raw->data.both.string, src->string.data, src->string.len);
-			memset(raw->data.both.string + src->string.len, 0, padding_len);
+			raw->data.both.len_string = ct_len;
+			memmove(raw->data.both.string, ct, ct_len);
+			memset(raw->data.both.string + ct_len, 0, padding_len);
 		} else {
-			raw->data.chars.len_string = src->string.len;
-			memmove(raw->data.chars.string, src->string.data, src->string.len);
-			memset(raw->data.chars.string + src->string.len, 0, padding_len);
+			raw->data.chars.len_string = ct_len;
+			memmove(raw->data.chars.string, ct, ct_len);
+			memset(raw->data.chars.string + ct_len, 0, padding_len);
 		}
 	}
+
+	free(ct);
 
 	return padded_len;
 }
