@@ -468,16 +468,16 @@ static void handle_get_ic_values_msg(xim_client_t *client, xim_msg_get_ic_values
 	return;
 }
 
-static void send_sync_reply(xim_client_t *client, int im, int ic)
+static int xim_client_sync(xim_client_t *client, const int im, const int ic, const int send_reply)
 {
-	xim_msg_sync_reply_t sync;
+	xim_msg_sync_t sync;
 
-	sync.hdr.type = XIM_SYNC_REPLY;
+	sync.hdr.type = send_reply ? XIM_SYNC_REPLY : XIM_SYNC;
 	sync.hdr.subtype = 0;
 	sync.im = im;
 	sync.ic = ic;
 
-	xim_client_send(client, (xim_msg_t*)&sync);
+	return xim_client_send(client, (xim_msg_t*)&sync);
 }
 
 static void handle_forward_event_msg(xim_client_t *client, xim_msg_forward_event_t *msg)
@@ -520,7 +520,7 @@ static void handle_forward_event_msg(xim_client_t *client, xim_msg_forward_event
 		xim_client_send(client, (xim_msg_t*)msg);
 	}
 
-	send_sync_reply(client, msg->im, msg->ic);
+	xim_client_sync(client, msg->im, msg->ic, 1);
 }
 
 static void _xim_client_handle_msg(xim_client_t *client, xim_msg_t *msg)
