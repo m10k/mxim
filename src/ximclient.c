@@ -684,3 +684,19 @@ int xim_client_get_ic(xim_client_t *client, const int id, input_context_t **ic)
 	*ic = client->ics[id - 1];
 	return 0;
 }
+
+int xim_client_commit(xim_client_t *client, const int im, const int ic,
+                      const void *data, const size_t data_len)
+{
+	xim_msg_commit_t msg;
+
+	msg.hdr.type = XIM_COMMIT;
+	msg.hdr.subtype = 0;
+	msg.im = im;
+	msg.ic = ic;
+	msg.flags = XIM_COMMIT_FLAG_CHARS;
+	msg.string.len = data_len;
+	msg.string.data = (void*)data;
+
+	return xim_client_send(client, (xim_msg_t*)&msg);
+}
