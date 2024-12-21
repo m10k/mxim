@@ -160,3 +160,23 @@ int input_context_get_data(input_context_t *ic, void **data)
 	*data = ic->priv;
 	return 0;
 }
+
+int input_context_get_im(input_context_t *ic)
+{
+	return ic->im;
+}
+
+int input_context_get_ic(input_context_t *ic)
+{
+	return ic->ic;
+}
+
+int input_context_get_client(input_context_t *ic, xim_client_t **client)
+{
+	if (!ic || !client) {
+		return -EINVAL;
+	}
+
+	*client = ic->client;
+	return 0;
+}
