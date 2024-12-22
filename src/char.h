@@ -207,6 +207,7 @@ typedef enum {
 	CHAR_JA_WI, /* ゐ/ヰ */
 	CHAR_JA_WO,
 	CHAR_JA_wa, /* ゎ */
+	CHAR_JA_N,
 
         CHAR_JA_CHOUON, /* ー（長音棒）*/
         CHAR_JA_DAKUTEN,
