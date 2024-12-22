@@ -137,6 +137,7 @@ typedef enum {
 } keycode_t;
 
 typedef enum {
+	MOD_NONE  = 0,
 	MOD_SHIFT = (1 << 0),
 	MOD_CTRL  = (1 << 1),
 	MOD_ALT   = (1 << 2),
