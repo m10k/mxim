@@ -207,7 +207,15 @@ typedef enum {
 	CHAR_JA_WI, /* ゐ/ヰ */
 	CHAR_JA_WO,
 	CHAR_JA_wa, /* ゎ */
-        CHAR_JA_CHOUON, /* ー（長音棒） (technically not a kana) */
+
+        CHAR_JA_CHOUON, /* ー（長音棒）*/
+        CHAR_JA_DAKUTEN,
+        CHAR_JA_HANDAKUTEN,
+        CHAR_JA_LQUOTE,
+        CHAR_JA_RQUOTE,
+        CHAR_JA_CDOT,
+        CHAR_JA_PERIOD,
+        CHAR_JA_COMMA,
 
 	CHAR_KR_BB,
 	CHAR_KR_B,
