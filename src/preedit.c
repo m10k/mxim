@@ -64,8 +64,8 @@ static int _preedit_update_cursor(preedit_t *preedit, const preedit_dir_t cursor
 
 		if (preedit->cursor.offset < 0) {
 			preedit->cursor.offset = 0;
-		} else if (preedit->cursor.offset >= segm->len) {
-			preedit->cursor.offset = segm->len > 0 ? segm->len - 1 : 0;
+		} else if (preedit->cursor.offset > segm->len) {
+			preedit->cursor.offset = segm->len;
 		}
 	}
 
