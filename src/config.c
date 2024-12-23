@@ -35,13 +35,13 @@ struct keymap {
 
 cmd_def_t config_keybindings[255][16] = {
 	[KEY_F1] = {
-		[MOD_ALT]  =  { .cmd = CMD_LANG_SWITCH, .arg = { .u = LANG_JA } },
+		[MOD_ALT]  =  { .cmd = CMD_LANG_SELECT, .arg = { .u = LANG_JA } },
 	},
 	[KEY_F2] = {
-		[MOD_ALT]  =  { .cmd = CMD_LANG_SWITCH, .arg = { .u = LANG_KR } },
+		[MOD_ALT]  =  { .cmd = CMD_LANG_SELECT, .arg = { .u = LANG_KR } },
 	},
 	[KEY_F3] = {
-		[MOD_ALT]  =  { .cmd = CMD_LANG_SWITCH, .arg = { .u = LANG_EN } },
+		[MOD_ALT]  =  { .cmd = CMD_LANG_SELECT, .arg = { .u = LANG_EN } },
 	},
 	[KEY_BACKSPACE] = {
 		[MOD_NONE] =   { .cmd = CMD_DELETE, .arg = { .i = -1 } },

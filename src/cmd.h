@@ -24,7 +24,7 @@
 typedef enum {
 	CMD_NOP = 0,        /* none */
 	CMD_LANG_CYCLE,     /* input_context_t *ctx | int dir      */
-	CMD_LANG_SWITCH,    /* input_context_t *ctx | unsigned idx */
+	CMD_LANG_SELECT,    /* input_context_t *ctx | unsigned idx */
 	CMD_CURSOR_MOVE,    /* input_context_t *ctx | int dir      */
 	CMD_CANDIDATE_MOVE, /* input_context_t *ctx | int dir      */
 	CMD_SEGMENT_MOVE,   /* input_context_t *ctx | int dir      */
