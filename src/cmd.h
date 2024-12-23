@@ -22,15 +22,16 @@
 #define CMD_H
 
 typedef enum {
-	CMD_NOP = 0,        /* none */
-	CMD_LANG_CYCLE,     /* input_context_t *ctx | int dir      */
-	CMD_LANG_SELECT,    /* input_context_t *ctx | unsigned idx */
-	CMD_CURSOR_MOVE,    /* input_context_t *ctx | int dir      */
-	CMD_CANDIDATE_MOVE, /* input_context_t *ctx | int dir      */
-	CMD_SEGMENT_MOVE,   /* input_context_t *ctx | int dir      */
-	CMD_SEGMENT_RESIZE, /* input_context_t *ctx | int size     */
-	CMD_DELETE,         /* input_context_t *ctx | int dir      */
-	CMD_COMMIT,         /* input_context_t *ctx                */
+	CMD_NOP = 0,          /* none          */
+	CMD_LANG_CYCLE,       /* int      dir  */
+	CMD_LANG_SELECT,      /* unsigned idx  */
+	CMD_CURSOR_MOVE,      /* int      dir  */
+	CMD_CANDIDATE_MOVE,   /* int      dir  */
+	CMD_CANDIDATE_SELECT, /* unsigned idx  */
+	CMD_SEGMENT_MOVE,     /* int      dir  */
+	CMD_SEGMENT_RESIZE,   /* int      size */
+	CMD_DELETE,           /* int      dir  */
+	CMD_COMMIT,           /* none          */
 	CMD_LAST
 } cmd_t;
 
