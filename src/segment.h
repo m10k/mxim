@@ -39,5 +39,6 @@ int segment_new(segment_t **segment);
 int segment_free(segment_t **segment);
 int segment_erase(segment_t *segment, const short pos);
 int segment_insert(segment_t *segment, const char_t chr, const short pos);
+int segment_clear(segment_t *segment);
 
 #endif /* SEGMENT_H */

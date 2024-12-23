@@ -134,3 +134,15 @@ int segment_insert(segment_t *segment, const char_t chr,
 
 	return 0;
 }
+
+int segment_clear(segment_t *segment)
+{
+	if (!segment) {
+		return -EINVAL;
+	}
+
+	memset(segment->characters, 0, segment->size * sizeof(*segment->characters));
+	segment->len = 0;
+
+	return 0;
+}
