@@ -65,6 +65,36 @@ cmd_def_t config_keybindings[255][16] = {
 		[MOD_ALT]   = { .cmd = CMD_COMMIT },
 		[MOD_SHIFT] = { .cmd = CMD_COMMIT },
 	},
+	[KEY_0] = {
+		[MOD_SUPER] = { .cmd = CMD_CANDIDATE_SELECT, .arg = { .u = 0 } },
+	},
+	[KEY_1] = {
+		[MOD_SUPER] = { .cmd = CMD_CANDIDATE_SELECT, .arg = { .u = 1 } },
+	},
+	[KEY_2] = {
+		[MOD_SUPER] = { .cmd = CMD_CANDIDATE_SELECT, .arg = { .u = 2 } },
+	},
+	[KEY_3] = {
+		[MOD_SUPER] = { .cmd = CMD_CANDIDATE_SELECT, .arg = { .u = 3 } },
+	},
+	[KEY_4] = {
+		[MOD_SUPER] = { .cmd = CMD_CANDIDATE_SELECT, .arg = { .u = 4 } },
+	},
+	[KEY_5] = {
+		[MOD_SUPER] = { .cmd = CMD_CANDIDATE_SELECT, .arg = { .u = 5 } },
+	},
+	[KEY_6] = {
+		[MOD_SUPER] = { .cmd = CMD_CANDIDATE_SELECT, .arg = { .u = 6 } },
+	},
+	[KEY_7] = {
+		[MOD_SUPER] = { .cmd = CMD_CANDIDATE_SELECT, .arg = { .u = 7 } },
+	},
+	[KEY_8] = {
+		[MOD_SUPER] = { .cmd = CMD_CANDIDATE_SELECT, .arg = { .u = 8 } },
+	},
+	[KEY_9] = {
+		[MOD_SUPER] = { .cmd = CMD_CANDIDATE_SELECT, .arg = { .u = 9 } },
+	},
 };
 
 static const struct keymap _config_keymap_en = {
