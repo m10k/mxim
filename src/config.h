@@ -22,9 +22,13 @@
 #define CONFIG_H
 
 #include "cmd.h"
+#include "char.h"
+#include "keysym.h"
 
 #ifndef CONFIG_C
 extern cmd_def_t config_keybindings[255][16];
 #endif /* CONFIG_C */
+
+int config_keysym_to_char(char_t *dst, const keysym_t *src, const lang_t lang);
 
 #endif /* CONFIG_H */
