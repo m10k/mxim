@@ -18,6 +18,7 @@
  * Boston, MA 02111-1307, USA.
  */
 
+#include "char.h"
 #include "inputcontext.h"
 #include "inputmethod.h"
 #include "preedit.h"
@@ -38,6 +39,8 @@ struct input_context {
 	xim_client_t *client;
 	preedit_t *preedit;
 	void *priv;
+
+	lang_t lang;
 };
 
 int input_context_new(input_context_t **dst, xim_client_t *client, const int im, const int ic)
@@ -205,4 +208,24 @@ int input_context_erase(input_context_t *ic)
 	dir.offset = -1;
 
 	return preedit_erase(ic->preedit, dir);
+}
+
+int input_context_set_language(input_context_t *ic, const lang_t language)
+{
+	if (!ic) {
+		return -EINVAL;
+	}
+
+	ic->lang = language;
+	return 0;
+}
+
+int input_context_get_language(input_context_t *ic, lang_t *lang)
+{
+	if (!ic || !lang) {
+		return -EINVAL;
+	}
+
+	*lang = ic->lang;
+	return 0;
 }
