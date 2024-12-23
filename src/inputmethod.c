@@ -19,9 +19,12 @@
  */
 
 #include "config.h"
+#include "char.h"
 #include "cmd.h"
+#include "preedit.h"
 #include "ximproto.h"
 #include "inputmethod.h"
+#include <assert.h>
 #include <errno.h>
 #include <stdlib.h>
 #include <string.h>
@@ -168,6 +171,9 @@ int input_method_get_ic_attrs(input_method_t *im, attr_t ***dst)
 int input_method_handle_key(input_method_t *im, input_context_t *ic, keysym_t *ks)
 {
 	cmd_def_t *binding;
+	char_t chr;
+	int err;
+	lang_t ic_lang;
 
 	binding = &config_keybindings[ks->key][ks->mod];
 
@@ -175,5 +181,15 @@ int input_method_handle_key(input_method_t *im, input_context_t *ic, keysym_t *k
 		return im->cmds[binding->cmd](im, ic, &binding->arg);
 	}
 
-	return im->event ? im->event(im, ic, ks) : -1;
+	assert(input_context_get_language(ic, &ic_lang) == 0);
+
+	if (config_keysym_to_char(&chr, ks, ic_lang) < 0) {
+		/*
+		 * Keysym has no corresponding character in the current
+		 * language -> return event to sender.
+		 */
+		return -1;
+	}
+
+	return input_context_insert(ic, chr);
 }
