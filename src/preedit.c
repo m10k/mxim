@@ -128,13 +128,12 @@ int preedit_erase(preedit_t *preedit, preedit_dir_t cursor_dir)
 		return -EINVAL;
 	}
 
-	if ((err = segment_erase(preedit->segments[preedit->cursor.segment],
-	                         preedit->cursor.offset)) < 0) {
+	if ((err = _preedit_update_cursor(preedit, cursor_dir)) < 0) {
 		return err;
 	}
 
-	_preedit_update_cursor(preedit, cursor_dir);
-	return 0;
+	return segment_erase(preedit->segments[preedit->cursor.segment],
+	                     preedit->cursor.offset);
 }
 
 int preedit_insert(preedit_t *preedit, char_t character, preedit_dir_t cursor_dir)
