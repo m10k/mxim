@@ -391,8 +391,13 @@ int config_keysym_to_char(char_t *dst, const keysym_t *src, const lang_t lang)
 		return -EINVAL;
 	}
 
+	/* keymaps have only MOD_SHIFT and MOD_NONE for now */
+	if (src->mod & ~MOD_SHIFT) {
+		return -ENOENT;
+	}
+
 	map = _config_keymap[lang];
-	chr = map->layers[src->mod & MOD_SHIFT].keys[src->key];
+	chr = map->layers[src->mod].keys[src->key];
 
 	if (!chr) {
 		return -ENOENT;
