@@ -43,6 +43,24 @@ cmd_def_t config_keybindings[255][16] = {
 	[KEY_F3] = {
 		[MOD_ALT]  =  { .cmd = CMD_LANG_SWITCH, .arg = { .u = LANG_EN } },
 	},
+	[KEY_BACKSPACE] = {
+		[MOD_NONE] =   { .cmd = CMD_DELETE, .arg = { .i = -1 } },
+	},
+	[KEY_DELETE] = {
+		[MOD_NONE] =   { .cmd = CMD_DELETE, .arg = { .i = 0 } },
+	},
+	[KEY_LEFT] = {
+		[MOD_NONE]             = { .cmd = CMD_CURSOR_MOVE,    .arg = { .i = -1 } },
+		[MOD_CTRL]             = { .cmd = CMD_SEGMENT_MOVE,   .arg = { .i = -1 } },
+		[MOD_CTRL | MOD_SHIFT] = { .cmd = CMD_SEGMENT_RESIZE, .arg = { .i = -1 } },
+		[MOD_SUPER]            = { .cmd = CMD_CANDIDATE_MOVE, .arg = { .i = -1 } },
+	},
+	[KEY_RIGHT] = {
+		[MOD_NONE]             = { .cmd = CMD_CURSOR_MOVE,    .arg = { .i = +1 } },
+		[MOD_CTRL]             = { .cmd = CMD_SEGMENT_MOVE,   .arg = { .i = +1 } },
+		[MOD_CTRL | MOD_SHIFT] = { .cmd = CMD_SEGMENT_RESIZE, .arg = { .i = +1 } },
+		[MOD_SUPER]            = { .cmd = CMD_CANDIDATE_MOVE, .arg = { .1 = +1 } },
+	},
 	[KEY_RETURN] = {
 		[MOD_ALT]   = { .cmd = CMD_COMMIT },
 		[MOD_SHIFT] = { .cmd = CMD_COMMIT },
