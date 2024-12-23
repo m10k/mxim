@@ -200,14 +200,14 @@ int input_context_insert(input_context_t *ic, const char_t chr)
 	return preedit_insert(ic->preedit, chr, dir);
 }
 
-int input_context_erase(input_context_t *ic)
+int input_context_erase(input_context_t *ic, int dir)
 {
-	preedit_dir_t dir;
+	preedit_dir_t cursor_dir;
 
-	dir.segment = 0;
-	dir.offset = -1;
+	cursor_dir.segment = 0;
+	cursor_dir.offset = dir;
 
-	return preedit_erase(ic->preedit, dir);
+	return preedit_erase(ic->preedit, cursor_dir);
 }
 
 int input_context_set_language(input_context_t *ic, const lang_t language)

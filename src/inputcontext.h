@@ -40,7 +40,7 @@ int input_context_get_ic(input_context_t *ic);
 int input_context_get_client(input_context_t *ic, xim_client_t **client);
 
 int input_context_insert(input_context_t *ic, const char_t chr);
-int input_context_erase(input_context_t *ic);
+int input_context_erase(input_context_t *ic, int dir);
 
 int input_context_set_language(input_context_t *ic, const lang_t language);
 int input_context_get_language(input_context_t *ic, lang_t *language);
