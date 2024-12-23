@@ -21,6 +21,7 @@
 #ifndef INPUTCONTEXT_H
 #define INPUTCONTEXT_H
 
+#include "char.h"
 #include "ximtypes.h"
 #include "ximclient.h"
 
@@ -37,5 +38,8 @@ int input_context_get_data(input_context_t *ic, void **priv);
 int input_context_get_im(input_context_t *ic);
 int input_context_get_ic(input_context_t *ic);
 int input_context_get_client(input_context_t *ic, xim_client_t **client);
+
+int input_context_insert(input_context_t *ic, const char_t chr);
+int input_context_erase(input_context_t *ic);
 
 #endif /* INPUTCONTEXT_H */

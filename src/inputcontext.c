@@ -20,6 +20,7 @@
 
 #include "inputcontext.h"
 #include "inputmethod.h"
+#include "preedit.h"
 #include "ximclient.h"
 #include "ximtypes.h"
 #include <errno.h>
@@ -35,6 +36,7 @@ struct input_context {
 	} attrs[IM_ICATTR_MAX];
 
 	xim_client_t *client;
+	preedit_t *preedit;
 	void *priv;
 };
 
@@ -57,17 +59,21 @@ int input_context_new(input_context_t **dst, xim_client_t *client, const int im,
 		return -ENOMEM;
 	}
 
-	context->client = client;
-	context->im = im;
-	context->ic = ic;
+	err = preedit_new(&(context->preedit));
 
-	for (i = err = 0; i < IM_ICATTR_MAX; i++) {
-		context->attrs[i].attr = method->ic_attrs[i].attr;
+	if (!err) {
+		context->client = client;
+		context->im = im;
+		context->ic = ic;
 
-		if (method->ic_attrs[i].value) {
-			if ((err = attr_value_clone(&context->attrs[i].value,
-			                            method->ic_attrs[i].value)) < 0) {
-				break;
+		for (i = err = 0; i < IM_ICATTR_MAX; i++) {
+			context->attrs[i].attr = method->ic_attrs[i].attr;
+
+			if (method->ic_attrs[i].value) {
+				if ((err = attr_value_clone(&context->attrs[i].value,
+				                            method->ic_attrs[i].value)) < 0) {
+					break;
+				}
 			}
 		}
 	}
@@ -179,4 +185,24 @@ int input_context_get_client(input_context_t *ic, xim_client_t **client)
 
 	*client = ic->client;
 	return 0;
+}
+
+int input_context_insert(input_context_t *ic, const char_t chr)
+{
+	preedit_dir_t dir;
+
+	dir.segment = 0;
+	dir.offset = 1;
+
+	return preedit_insert(ic->preedit, chr, dir);
+}
+
+int input_context_erase(input_context_t *ic)
+{
+	preedit_dir_t dir;
+
+	dir.segment = 0;
+	dir.offset = -1;
+
+	return preedit_erase(ic->preedit, dir);
 }
