@@ -58,6 +58,7 @@ typedef enum {
 	CHAR_PIPE,
 	CHAR_RBRACE,
 	CHAR_TILDA,
+	CHAR_SPACE,
 
 	CHAR_0,
 	CHAR_1,
