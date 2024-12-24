@@ -30,48 +30,6 @@ struct preedit {
 	preedit_cursor_t cursor;
 };
 
-static int _preedit_update_cursor(preedit_t *preedit, const preedit_dir_t cursor_dir)
-{
-	if (!preedit) {
-		return -EINVAL;
-	}
-
-	/* Assumption: The preedit always has at least one segment */
-
-	if (cursor_dir.segment == PREEDIT_SEGMENT_FIRST) {
-		preedit->cursor.segment = 0;
-	} else if (cursor_dir.segment == PREEDIT_SEGMENT_LAST) {
-		preedit->cursor.segment = preedit->num_segments - 1;
-	} else {
-		preedit->cursor.segment += cursor_dir.segment;
-
-		if (preedit->cursor.segment < 0) {
-			preedit->cursor.segment = 0;
-		} else if (preedit->cursor.segment > preedit->num_segments) {
-			preedit->cursor.segment = preedit->num_segments - 1;
-		}
-	}
-
-	if (cursor_dir.offset == PREEDIT_SEGMENT_START) {
-		preedit->cursor.offset = 0;
-	} else if (cursor_dir.offset == PREEDIT_SEGMENT_END) {
-		preedit->cursor.offset = preedit->segments[preedit->cursor.segment]->len;
-	} else {
-		segment_t *segm;
-
-		segm = preedit->segments[preedit->cursor.segment];
-		preedit->cursor.offset += cursor_dir.offset;
-
-		if (preedit->cursor.offset < 0) {
-			preedit->cursor.offset = 0;
-		} else if (preedit->cursor.offset > segm->len) {
-			preedit->cursor.offset = segm->len;
-		}
-	}
-
-	return 0;
-}
-
 int preedit_new(preedit_t **preedit)
 {
 	preedit_t *p;
@@ -117,7 +75,44 @@ int preedit_free(preedit_t **preedit)
 
 int preedit_move(preedit_t *preedit, preedit_dir_t cursor_dir)
 {
-	return _preedit_update_cursor(preedit, cursor_dir);
+	if (!preedit) {
+		return -EINVAL;
+	}
+
+	/* Assumption: The preedit always has at least one segment */
+
+	if (cursor_dir.segment == PREEDIT_SEGMENT_FIRST) {
+		preedit->cursor.segment = 0;
+	} else if (cursor_dir.segment == PREEDIT_SEGMENT_LAST) {
+		preedit->cursor.segment = preedit->num_segments - 1;
+	} else {
+		preedit->cursor.segment += cursor_dir.segment;
+
+		if (preedit->cursor.segment < 0) {
+			preedit->cursor.segment = 0;
+		} else if (preedit->cursor.segment > preedit->num_segments) {
+			preedit->cursor.segment = preedit->num_segments - 1;
+		}
+	}
+
+	if (cursor_dir.offset == PREEDIT_SEGMENT_START) {
+		preedit->cursor.offset = 0;
+	} else if (cursor_dir.offset == PREEDIT_SEGMENT_END) {
+		preedit->cursor.offset = preedit->segments[preedit->cursor.segment]->len;
+	} else {
+		segment_t *segm;
+
+		segm = preedit->segments[preedit->cursor.segment];
+		preedit->cursor.offset += cursor_dir.offset;
+
+		if (preedit->cursor.offset < 0) {
+			preedit->cursor.offset = 0;
+		} else if (preedit->cursor.offset > segm->len) {
+			preedit->cursor.offset = segm->len;
+		}
+	}
+
+	return 0;
 }
 
 int preedit_erase(preedit_t *preedit, preedit_dir_t cursor_dir)
@@ -128,7 +123,7 @@ int preedit_erase(preedit_t *preedit, preedit_dir_t cursor_dir)
 		return -EINVAL;
 	}
 
-	if ((err = _preedit_update_cursor(preedit, cursor_dir)) < 0) {
+	if ((err = preedit_move(preedit, cursor_dir)) < 0) {
 		return err;
 	}
 
@@ -148,7 +143,7 @@ int preedit_insert(preedit_t *preedit, char_t character, preedit_dir_t cursor_di
 	                     character, preedit->cursor.offset);
 
 	if (!err) {
-		err = _preedit_update_cursor(preedit, cursor_dir);
+		err = preedit_move(preedit, cursor_dir);
 	}
 
 	return err;
