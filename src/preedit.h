@@ -45,5 +45,6 @@ int preedit_free(preedit_t **preedit);
 int preedit_move(preedit_t *preedit, preedit_dir_t cursor_dir);
 int preedit_erase(preedit_t *preedit, preedit_dir_t cursor_dir);
 int preedit_insert(preedit_t *preedit, char_t chr, preedit_dir_t cursor_dir);
+int preedit_clear(preedit_t *preedit);
 
 #endif /* PREEDIT_H */

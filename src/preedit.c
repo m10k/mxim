@@ -156,3 +156,17 @@ int preedit_insert(preedit_t *preedit, char_t character, preedit_dir_t cursor_di
 
 	return err;
 }
+
+int preedit_clear(preedit_t *preedit)
+{
+	int err;
+
+	/* Remove all but the first segment */
+	while (preedit->num_segments > 1) {
+		if ((err = segment_free(&preedit->segments[--preedit->num_segments])) < 0) {
+			return err;
+		}
+	}
+
+	return segment_clear(preedit->segments[0]);
+}
