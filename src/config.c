@@ -148,7 +148,9 @@ static const struct keymap _config_keymap_en = {
 				[KEY_COMMA]      = CHAR_COMMA,
 				[KEY_PERIOD]     = CHAR_PERIOD,
 				[KEY_SLASH]      = CHAR_SLASH,
-				[KEY_BACKSLASH]  = CHAR_BACKSLASH
+				[KEY_BACKSLASH]  = CHAR_BACKSLASH,
+				[KEY_SPACE]      = CHAR_SPACE,
+				[KEY_TAB]        = CHAR_TAB,
 			}
 		},
 		[MOD_SHIFT] = {
@@ -200,7 +202,9 @@ static const struct keymap _config_keymap_en = {
 				[KEY_COMMA]      = CHAR_LT,
 				[KEY_PERIOD]     = CHAR_GT,
 				[KEY_SLASH]      = CHAR_QMARK,
-				[KEY_BACKSLASH]  = CHAR_UNDERSCORE
+				[KEY_BACKSLASH]  = CHAR_UNDERSCORE,
+				[KEY_SPACE]      = CHAR_SPACE,
+				[KEY_TAB]        = CHAR_TAB,
 			}
 		}
 	}
@@ -257,7 +261,9 @@ static const struct keymap _config_keymap_ja = {
 				[KEY_COMMA]      = CHAR_JA_NE,
 				[KEY_PERIOD]     = CHAR_JA_RU,
 				[KEY_SLASH]      = CHAR_JA_ME,
-				[KEY_BACKSLASH]  = CHAR_JA_RO
+				[KEY_BACKSLASH]  = CHAR_JA_RO,
+				[KEY_SPACE]      = CHAR_SPACE,
+				[KEY_TAB]        = CHAR_TAB,
 			}
 		},
 		[MOD_SHIFT] = {
@@ -309,7 +315,9 @@ static const struct keymap _config_keymap_ja = {
 				[KEY_COMMA]      = CHAR_JA_COMMA,
 				[KEY_PERIOD]     = CHAR_JA_PERIOD,
 				[KEY_SLASH]      = CHAR_JA_CDOT,
-				[KEY_BACKSLASH]  = CHAR_JA_RO
+				[KEY_BACKSLASH]  = CHAR_JA_RO,
+				[KEY_SPACE]      = CHAR_SPACE,
+				[KEY_TAB]        = CHAR_TAB,
 			}
 		}
 	}
@@ -366,7 +374,9 @@ static const struct keymap _config_keymap_kr = {
 				[KEY_COMMA]      = CHAR_COMMA,
 				[KEY_PERIOD]     = CHAR_PERIOD,
 				[KEY_SLASH]      = CHAR_SLASH,
-				[KEY_BACKSLASH]  = CHAR_BACKSLASH
+				[KEY_BACKSLASH]  = CHAR_BACKSLASH,
+				[KEY_SPACE]      = CHAR_SPACE,
+				[KEY_TAB]        = CHAR_TAB,
 			}
 		},
 		[MOD_SHIFT] = {
@@ -418,7 +428,9 @@ static const struct keymap _config_keymap_kr = {
 				[KEY_COMMA]      = CHAR_LT,
 				[KEY_PERIOD]     = CHAR_GT,
 				[KEY_SLASH]      = CHAR_QMARK,
-				[KEY_BACKSLASH]  = CHAR_UNDERSCORE
+				[KEY_BACKSLASH]  = CHAR_UNDERSCORE,
+				[KEY_SPACE]      = CHAR_SPACE,
+				[KEY_TAB]        = CHAR_TAB,
 			}
 		}
 	}
