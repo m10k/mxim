@@ -264,4 +264,6 @@ typedef enum {
 	LANG_MAX
 } lang_t;
 
+int char_to_utf8(const char_t *src, const size_t src_len, char *dst, const size_t dst_size);
+
 #endif /* MXIM_CHAR_H */

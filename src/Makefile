@@ -1,6 +1,6 @@
 OBJECTS = main.o xhandler.o thread.o ximserver.o fd.o in4.o ximclient.o \
 	  inputmethod.o inputcontext.o ximtypes.o ximproto.o keysym.o   \
-	  config.o segment.o preedit.o
+	  config.o segment.o preedit.o char.o
 OUTPUT = mxim
 PHONY = clean all install
 CFLAGS = -Wall -g
