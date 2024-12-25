@@ -25,7 +25,7 @@
 #include <limits.h>
 
 struct segment {
-	char_t *characters;
+	char_t *input;
 	short size;
 	short len;
 };
@@ -40,5 +40,7 @@ int segment_free(segment_t **segment);
 int segment_erase(segment_t *segment, const short pos);
 int segment_insert(segment_t *segment, const char_t chr, const short pos);
 int segment_clear(segment_t *segment);
+
+int segment_get_input(segment_t *segment, char *dst, const size_t dst_size);
 
 #endif /* SEGMENT_H */

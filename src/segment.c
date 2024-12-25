@@ -35,8 +35,8 @@ int segment_new(segment_t **segment)
 		return -ENOMEM;
 	}
 
-	if (!(seg->characters = calloc(INITIAL_SEGMENT_SIZE,
-	                               sizeof(*seg->characters)))) {
+	if (!(seg->input = calloc(INITIAL_SEGMENT_SIZE,
+	                               sizeof(*seg->input)))) {
 		free(seg);
 		return -ENOMEM;
 	}
@@ -52,7 +52,7 @@ int segment_free(segment_t **segment)
 		return -EINVAL;
 	}
 
-	free((*segment)->characters);
+	free((*segment)->input);
 	free(*segment);
 	*segment = 0;
 	return 0;
@@ -71,12 +71,12 @@ int segment_erase(segment_t *segment, const short pos)
 	}
 
 	tail_len = segment->len - pos - 1;
-	memmove(segment->characters + pos,
-	        segment->characters + pos + 1,
-	        sizeof(*segment->characters) * tail_len);
+	memmove(segment->input + pos,
+	        segment->input + pos + 1,
+	        sizeof(*segment->input) * tail_len);
 
 	segment->len--;
-	segment->characters[segment->len] = CHAR_INVALID;
+	segment->input[segment->len] = CHAR_INVALID;
 
 	return 0;
 }
@@ -91,12 +91,12 @@ static int _segment_grow(segment_t *segment)
 	}
 
 	new_size = segment->size + INITIAL_SEGMENT_SIZE;
-	if (!(new_characters = realloc(segment->characters,
-	                               new_size * sizeof(*segment->characters)))) {
+	if (!(new_characters = realloc(segment->input,
+	                               new_size * sizeof(*segment->input)))) {
 		return -ENOMEM;
 	}
 
-	segment->characters = new_characters;
+	segment->input = new_characters;
 	segment->size = new_size;
 
 	return 0;
@@ -127,9 +127,9 @@ int segment_insert(segment_t *segment, const char_t chr,
 	}
 
 	tail_len = segment->len - insert_pos;
-	memmove(segment->characters + insert_pos + 1,
-	        segment->characters + insert_pos, tail_len);
-	segment->characters[insert_pos] = chr;
+	memmove(segment->input + insert_pos + 1,
+	        segment->input + insert_pos, tail_len);
+	segment->input[insert_pos] = chr;
 	segment->len++;
 
 	return 0;
@@ -141,8 +141,17 @@ int segment_clear(segment_t *segment)
 		return -EINVAL;
 	}
 
-	memset(segment->characters, 0, segment->size * sizeof(*segment->characters));
+	memset(segment->input, 0, segment->size * sizeof(*segment->input));
 	segment->len = 0;
 
 	return 0;
+}
+
+int segment_get_input(segment_t *segment, char *dst, const size_t dst_size)
+{
+	if (!segment || !dst) {
+		return -EINVAL;
+	}
+
+	return char_to_utf8(segment->input, segment->len, dst, dst_size);
 }
