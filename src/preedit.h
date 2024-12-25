@@ -47,4 +47,6 @@ int preedit_erase(preedit_t *preedit, preedit_dir_t cursor_dir);
 int preedit_insert(preedit_t *preedit, char_t chr, preedit_dir_t cursor_dir);
 int preedit_clear(preedit_t *preedit);
 
+int preedit_get_input(preedit_t *preedit, char *dst, const size_t dst_size);
+
 #endif /* PREEDIT_H */

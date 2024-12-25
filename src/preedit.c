@@ -170,3 +170,26 @@ int preedit_clear(preedit_t *preedit)
 
 	return segment_clear(preedit->segments[0]);
 }
+
+int preedit_get_input(preedit_t *preedit, char *dst, const size_t dst_size)
+{
+	size_t offset;
+	int err;
+	short i;
+
+	if (!preedit || !dst) {
+		return -EINVAL;
+	}
+
+	for (offset = 0, i = 0; i < preedit->num_segments; i++) {
+		if ((err = segment_get_input(preedit->segments[i],
+		                             dst + offset,
+		                             dst_size - offset)) < 0) {
+			return err;
+		}
+
+		offset += err;
+	}
+
+	return (int)offset;
+}
