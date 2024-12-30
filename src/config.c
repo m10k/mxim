@@ -65,6 +65,9 @@ cmd_def_t config_keybindings[255][16] = {
 		[MOD_ALT]   = { .cmd = CMD_COMMIT },
 		[MOD_SHIFT] = { .cmd = CMD_COMMIT },
 	},
+	[KEY_TAB] = {
+		[MOD_CTRL] =  { .cmd = CMD_SEGMENT_NEW,      .arg = { .i = 0 } },
+	},
 	[KEY_0] = {
 		[MOD_SUPER] = { .cmd = CMD_CANDIDATE_SELECT, .arg = { .u = 0 } },
 	},
