@@ -43,9 +43,10 @@ static void _print_usage(const char *name)
 	        name);
 }
 
+x_handler_t *xhandler;
+
 int main(int argc, char *argv[])
 {
-	x_handler_t *xhandler;
 	xim_server_t *server;
 	int ret;
 
