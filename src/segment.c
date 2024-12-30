@@ -23,6 +23,7 @@
 #include "string.h"
 #include <errno.h>
 #include <limits.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -260,4 +261,19 @@ cleanup:
 
 	string_free(&input);
 	return err;
+}
+
+int segment_get_output(segment_t *segment, char *dst, const size_t dst_size)
+{
+	if (!segment || !dst) {
+		return -EINVAL;
+	}
+
+	if (segment->selection < 0 ||
+	    segment->selection >= segment->num_candidates) {
+		/* no candidate selected - return input */
+		return segment_get_input(segment, dst, dst_size);
+	}
+
+	return snprintf(dst, dst_size, "%s", segment->candidates[segment->selection]);
 }

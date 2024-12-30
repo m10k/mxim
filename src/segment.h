@@ -47,5 +47,6 @@ int segment_clear(segment_t *segment);
 
 int segment_get_input(segment_t *segment, char *dst, const size_t dst_size);
 int segment_get_input_decorated(segment_t *segment, const int selected, const int cursor_pos, char **dst);
+int segment_get_output(segment_t *segment, char *dst, const size_t dst_size);
 
 #endif /* SEGMENT_H */
