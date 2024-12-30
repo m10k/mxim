@@ -21,10 +21,15 @@
 #ifndef XHANDLER_H
 #define XHANDLER_H
 
+#include <X11/Xlib.h>
+
 typedef struct x_handler x_handler_t;
 
 int x_handler_init(x_handler_t **handler);
 int x_handler_free(x_handler_t **handler);
 int x_handler_run(x_handler_t *handler);
+
+int x_handler_get_client_window(x_handler_t *handler, Window window, Window *client);
+int x_handler_set_text_property(x_handler_t *handler, Window window, const char *name, const char *value);
 
 #endif /* XHANDLER_H */

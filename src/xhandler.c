@@ -25,6 +25,7 @@
 #include <string.h>
 #include <X11/Xlib.h>
 #include <X11/Xatom.h>
+#include <X11/Xutil.h>
 
 enum _atoms {
 	ATOM_IM = 0,
@@ -206,4 +207,61 @@ int x_handler_run(x_handler_t *handler)
 	}
 
 	return err;
+}
+
+int x_handler_get_client_window(x_handler_t *handler, Window window, Window *client)
+{
+	Window current;
+	Window root;
+	Window parent;
+
+	root = parent = None;
+	current = window;
+
+	while (current != root) {
+		Window current_parent;
+		Window *children;
+		unsigned nchildren;
+
+		children = NULL;
+		XQueryTree(handler->display, current, &root, &current_parent, &children, &nchildren);
+
+		if (children) {
+			XFree(children);
+		}
+
+		if (current_parent == root) {
+			break;
+		}
+
+		if (parent != root) {
+			parent = current_parent;
+		}
+
+		current = current_parent;
+	}
+
+	*client = parent;
+	return 0;
+}
+
+int x_handler_set_text_property(x_handler_t *handler, Window window, const char *name, const char *value)
+{
+	XTextProperty prop;
+	Atom atom;
+
+	if ((atom = XInternAtom(handler->display, name, False)) == None) {
+		return -EIO;
+	}
+
+	if (Xutf8TextListToTextProperty(handler->display, (char**)&value, 1,
+	                                XUTF8StringStyle, &prop) != Success) {
+		return -ENOMEM;
+	}
+
+	XSetTextProperty(handler->display, window, &prop, atom);
+	XSync(handler->display, False);
+	XFree(prop.value);
+
+	return 0;
 }
