@@ -103,10 +103,14 @@ int string_append(string_t *dst, const string_t *src)
 		return -EINVAL;
 	}
 
+	if (src->len == SIZE_MAX) {
+		return -EMSGSIZE;
+	}
+
 	available = dst->size - dst->len;
 
-	if (available < src->len) {
-		if ((err = _string_grow(dst, src->len - available)) < 0) {
+	if (available < src->len + 1) {
+		if ((err = _string_grow(dst, src->len - available + 1)) < 0) {
 			return err;
 		}
 	}
