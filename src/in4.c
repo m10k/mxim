@@ -18,13 +18,13 @@
  * Boston, MA 02111-1307, USA.
  */
 
-#include "socket.h"
-#include "in4.h"
+#include "fd.h"
 #include <errno.h>
 #include <stdio.h>
 #include <stddef.h>
 #include <string.h>
 #include <stdlib.h>
+#include <unistd.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
 
