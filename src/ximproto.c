@@ -884,6 +884,8 @@ static int decode_XIM_CREATE_IC(xim_msg_t **dst, const struct XIM_CREATE_IC *src
 		return decoded_len;
 	}
 
+	for (msg->num_values = 0; msg->values[msg->num_values]; msg->num_values++);
+
 	*dst = (xim_msg_t*)msg;
 	return decoded_len + sizeof(*src);
 }
