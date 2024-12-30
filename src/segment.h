@@ -28,6 +28,10 @@ struct segment {
 	char_t *input;
 	short size;
 	short len;
+
+	char **candidates;
+	int num_candidates;
+	int selection;
 };
 
 typedef struct segment segment_t;
@@ -42,5 +46,6 @@ int segment_insert(segment_t *segment, const char_t chr, const short pos);
 int segment_clear(segment_t *segment);
 
 int segment_get_input(segment_t *segment, char *dst, const size_t dst_size);
+int segment_get_input_decorated(segment_t *segment, const int selected, const int cursor_pos, char **dst);
 
 #endif /* SEGMENT_H */

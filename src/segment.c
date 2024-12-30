@@ -20,6 +20,7 @@
 
 #include "char.h"
 #include "segment.h"
+#include "string.h"
 #include <errno.h>
 #include <limits.h>
 #include <stdlib.h>
@@ -36,7 +37,7 @@ int segment_new(segment_t **segment)
 	}
 
 	if (!(seg->input = calloc(INITIAL_SEGMENT_SIZE,
-	                               sizeof(*seg->input)))) {
+	                          sizeof(*seg->input)))) {
 		free(seg);
 		return -ENOMEM;
 	}
@@ -154,4 +155,109 @@ int segment_get_input(segment_t *segment, char *dst, const size_t dst_size)
 	}
 
 	return char_to_utf8(segment->input, segment->len, dst, dst_size);
+}
+
+int segment_get_input_decorated(segment_t *segment, const int selected, const int cursor_pos, char **dst)
+{
+	static const char cursor[] = "<span foreground=\"grey\">⇱</span>";
+	string_t *input;
+	string_t *escape;
+	int err;
+	int i;
+
+	escape = NULL;
+
+	if ((err = string_new(&input)) < 0) {
+		return err;
+	}
+
+	if (selected &&
+	    (err = string_append_utf8(input, "[", 1)) < 0) {
+		goto cleanup;
+	}
+
+	if (cursor_pos >= 0 && cursor_pos <= segment->len) {
+		if (string_new(&escape) < 0 ||
+		    (err = string_append_char(escape, segment->input, cursor_pos)) < 0 ||
+		    (err = string_replace(escape, "&", "&amp;")) < 0 ||
+		    (err = string_replace(escape, "<", "&lt;")) < 0 ||
+		    (err = string_replace(escape, ">", "&gt;")) < 0 ||
+		    (err = string_append(input, escape)) < 0 ||
+		    (err = string_free(&escape)) < 0) {
+			goto cleanup;
+		}
+
+		if ((err = string_append_utf8(input, cursor, sizeof(cursor))) < 0) {
+			goto cleanup;
+		}
+
+		if (string_new(&escape) < 0 ||
+		    (err = string_append_char(escape, segment->input + cursor_pos,
+		                              segment->len - cursor_pos)) < 0 ||
+		    (err = string_replace(escape, "&", "&amp;")) < 0 ||
+		    (err = string_replace(escape, "<", "&lt;")) < 0 ||
+		    (err = string_replace(escape, ">", "&gt;")) < 0 ||
+		    (err = string_append(input, escape)) < 0 ||
+		    (err = string_free(&escape)) < 0) {
+			goto cleanup;
+		}
+	} else {
+		if (string_new(&escape) < 0 ||
+		    (err = string_append_char(escape, segment->input, segment->len)) < 0 ||
+		    (err = string_replace(escape, "&", "&amp;")) < 0 ||
+		    (err = string_replace(escape, "<", "&lt;")) < 0 ||
+		    (err = string_replace(escape, ">", "&gt;")) < 0 ||
+		    (err = string_append(input, escape)) < 0 ||
+		    (err = string_free(&escape)) < 0) {
+			goto cleanup;
+		}
+	}
+
+	if (selected) {
+		for (i = 0; i < segment->num_candidates; i++) {
+			static const char _selection_header[] = "<span foreground=\"blue\">";
+			static const char _selection_trailer[] = "</span>";
+
+			if ((err = string_append_utf8(input, "|", 1)) < 0) {
+				goto cleanup;
+			}
+
+			if (i == segment->selection &&
+			    (err = string_append_utf8(input, _selection_header,
+			                              sizeof(_selection_header))) < 0) {
+				goto cleanup;
+			}
+
+			if ((err = string_new(&escape)) < 0 ||
+			    (err = string_append_utf8(escape, segment->candidates[i],
+			                              strlen(segment->candidates[i]))) < 0 ||
+			    (err = string_replace(escape, "&", "&amp;")) < 0 ||
+			    (err = string_replace(escape, "<", "&lt;")) < 0 ||
+			    (err = string_replace(escape, ">", "&gt;")) < 0 ||
+			    (err = string_append(input, escape)) < 0 ||
+			    string_free(&escape) < 0) {
+				goto cleanup;
+			}
+
+			if (segment->selection == i &&
+			    (err = string_append_utf8(input, _selection_trailer,
+			                              sizeof(_selection_trailer))) < 0) {
+				goto cleanup;
+			}
+		}
+
+		if ((err = string_append_utf8(input, "]", 1)) < 0) {
+			goto cleanup;
+		}
+	}
+
+cleanup:
+	string_free(&escape);
+
+	if (err >= 0) {
+		err = string_get_utf8(input, dst);
+	}
+
+	string_free(&input);
+	return err;
 }
