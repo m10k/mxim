@@ -19,6 +19,8 @@
  */
 
 #include "char.h"
+#include <errno.h>
+#include <stdlib.h>
 #include <stdio.h>
 
 static const char *_charmap[] = {
@@ -260,6 +262,10 @@ int char_to_utf8(const char_t *src, const size_t src_len, char *dst, const size_
 	size_t src_idx;
 	size_t dst_offset;
 
+	if(dst_size > 0) {
+		dst[0] = 0;
+	}
+
 	for (src_idx = dst_offset = 0; src_idx < src_len; src_idx++) {
 		const char *utf8;
 
@@ -271,4 +277,43 @@ int char_to_utf8(const char_t *src, const size_t src_len, char *dst, const size_
 	}
 
 	return (int)dst_offset;
+}
+
+int _estimate_size(const char_t *src, const size_t src_len)
+{
+	int size;
+	int i;
+
+	if (!src) {
+		return -EINVAL;
+	}
+
+	for (size = i = 0; i < (int)src_len; i++) {
+		const char *utf8;
+
+		if (!(utf8 = _charmap[src[i]])) {
+			break;
+		}
+
+		size += snprintf(NULL, 0, utf8);
+	}
+
+	return size;
+}
+
+int char_to_utf8_dyn(const char_t *src, const size_t src_len, char **dst)
+{
+	char *buffer;
+	int buffer_size;
+
+	if (!dst || (buffer_size = _estimate_size(src, src_len)) < 0) {
+		return -EINVAL;
+	}
+
+	if (!(buffer = malloc(buffer_size + 1))) {
+		return -ENOMEM;
+	}
+
+	*dst = buffer;
+	return char_to_utf8(src, src_len, buffer, buffer_size + 1);
 }
