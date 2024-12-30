@@ -277,3 +277,91 @@ int segment_get_output(segment_t *segment, char *dst, const size_t dst_size)
 
 	return snprintf(dst, dst_size, "%s", segment->candidates[segment->selection]);
 }
+
+int segment_select_candidate(segment_t *segment, const int selection)
+{
+	if (!segment) {
+		return -EINVAL;
+	}
+
+	if (selection < 0 || selection >= segment->num_candidates) {
+		return -EBADSLT;
+	}
+
+	segment->selection = selection;
+	return 0;
+}
+
+int segment_set_candidates(segment_t *segment, char **candidates)
+{
+	char *old_selection;
+	int new_selection;
+	char **new_candidates;
+	int num_candidates;
+
+	new_selection = -1;
+	old_selection = NULL;
+
+	if (segment->selection < 0 || segment->selection >= segment->num_candidates) {
+		old_selection = segment->candidates[segment->selection];
+	}
+
+	for (num_candidates = 0; candidates[num_candidates]; num_candidates++) {
+		/*
+		 * While we're checking the size of the array, check also if the old
+		 * selection is present in the new candidate array.
+		 */
+		if (old_selection && old_selection == candidates[num_candidates]) {
+			new_selection = num_candidates;
+		}
+	}
+
+	if (!(new_candidates = calloc(num_candidates + 1, sizeof(*new_candidates)))) {
+		return -ENOMEM;
+	}
+	memmove(new_candidates, candidates, num_candidates * sizeof(*candidates));
+
+	free(segment->candidates);
+	segment->candidates = new_candidates;
+	segment->num_candidates = num_candidates;
+	segment->selection = new_selection;
+
+	return num_candidates;
+}
+
+int segment_get_candidates(segment_t *segment, char ***candidates)
+{
+	char **new_candidates;
+
+	if (!segment || !candidates) {
+		return -EINVAL;
+	}
+
+	if (!segment->num_candidates) {
+		return -ENOENT;
+	}
+
+	if (!(new_candidates = calloc(segment->num_candidates + 1, sizeof(*new_candidates)))) {
+		return -ENOMEM;
+	}
+
+	memmove(new_candidates, segment->candidates,
+	        segment->num_candidates * sizeof(*new_candidates));
+
+	return segment->num_candidates;
+}
+
+int segment_move_candidate(segment_t *segment, const int dir)
+{
+	if (!segment) {
+		return -EINVAL;
+	}
+
+	segment->selection = (segment->selection + dir) % segment->num_candidates;
+
+	while (segment->selection < 0) {
+		segment->selection += segment->num_candidates;
+	}
+
+	return 0;
+}
