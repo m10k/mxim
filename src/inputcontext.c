@@ -24,8 +24,13 @@
 #include "preedit.h"
 #include "ximclient.h"
 #include "ximtypes.h"
+#include "xhandler.h"
 #include <errno.h>
 #include <stdlib.h>
+#include <string.h>
+#include <X11/Xlib.h>
+
+extern x_handler_t *xhandler;
 
 struct input_context {
 	int im;
@@ -36,6 +41,7 @@ struct input_context {
 		attr_value_t *value;
 	} attrs[IM_ICATTR_MAX];
 
+	Window window;
 	xim_client_t *client;
 	preedit_t *preedit;
 	void *priv;
@@ -129,6 +135,11 @@ int input_context_set_attribute(input_context_t *ic, attr_value_t *val)
 
 	attr_value_free(&ic->attrs[idx].value);
 	ic->attrs[idx].value = clone;
+
+	if (strcmp(ic->attrs[idx].attr->name, XNClientWindow) == 0) {
+		x_handler_get_client_window(xhandler, (Window)*(uint32_t*)clone->data,
+		                            &ic->window);
+	}
 
 	return 0;
 }
