@@ -312,3 +312,20 @@ int input_context_redraw(const input_context_t *ic)
 
 	return err;
 }
+
+int input_context_commit(input_context_t *ic)
+{
+	char utf8[2048];
+	int utf8_len;
+	int err;
+
+	if ((utf8_len = preedit_get_output(ic->preedit, utf8, sizeof(utf8))) < 0) {
+		return utf8_len;
+	}
+
+	if ((err = xim_client_commit(ic->client, ic->im, ic->ic, utf8, utf8_len)) < 0) {
+		return err;
+	}
+
+	return preedit_clear(ic->preedit);
+}

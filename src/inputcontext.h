@@ -55,5 +55,6 @@ int input_context_move_segment(input_context_t *ic, const int dir);
 int input_context_insert_segment(input_context_t *ic);
 
 int input_context_redraw(const input_context_t *ic);
+int input_context_commit(input_context_t *ic);
 
 #endif /* INPUTCONTEXT_H */
