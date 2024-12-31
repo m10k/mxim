@@ -249,3 +249,23 @@ cleanup:
 
 	return err;
 }
+
+int preedit_get_output(const preedit_t *preedit, char *dst, const size_t dst_size)
+{
+	int offset;
+	int i;
+
+	for (offset = i = 0; i < preedit->num_segments; i++) {
+		int len;
+
+		if ((len = segment_get_output(preedit->segments[i],
+		                              dst + offset,
+		                              dst_size - offset)) < 0) {
+			break;
+		}
+
+		offset += len;
+	}
+
+	return offset;
+}

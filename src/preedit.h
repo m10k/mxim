@@ -22,6 +22,7 @@
 #define PREEDIT_H
 
 #include "segment.h"
+#include "string.h"
 #include <limits.h>
 
 #define PREEDIT_SEGMENT_FIRST SHRT_MIN
@@ -48,5 +49,7 @@ int preedit_insert(preedit_t *preedit, char_t chr, preedit_dir_t cursor_dir);
 int preedit_clear(preedit_t *preedit);
 
 int preedit_get_input(preedit_t *preedit, char *dst, const size_t dst_size);
+int preedit_get_input_decorated(const preedit_t *preedit, char **dst);
+int preedit_get_output(const preedit_t *preedit, char *dst, const size_t dst_size);
 
 #endif /* PREEDIT_H */
