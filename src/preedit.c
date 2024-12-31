@@ -289,3 +289,53 @@ int preedit_move_candidate(preedit_t *preedit, const int dir)
 
 	return segment_move_candidate(segment, dir);
 }
+
+int preedit_move_segment(preedit_t *preedit, const int dir)
+{
+	preedit_dir_t cursor_dir;
+
+	if (!preedit) {
+		return -EINVAL;
+	}
+
+	cursor_dir.segment = dir;
+	cursor_dir.offset = PREEDIT_SEGMENT_END;
+
+	return preedit_move(preedit, cursor_dir);
+}
+
+int preedit_insert_segment(preedit_t *preedit)
+{
+	segment_t *new_segment;
+	segment_t **new_segments;
+	short new_num_segments;
+	int err;
+	int src_idx;
+	int dst_idx;
+
+	if ((err = segment_new(&new_segment)) < 0) {
+		return err;
+	}
+
+	new_num_segments = preedit->num_segments + 1;
+
+	if (!(new_segments = calloc(new_num_segments, sizeof(*new_segments)))) {
+		segment_free(&new_segment);
+		return -ENOMEM;
+	}
+
+	for (src_idx = dst_idx = 0; src_idx < preedit->num_segments; src_idx++) {
+		new_segments[dst_idx++] = preedit->segments[src_idx];
+
+		/* insert new segment after the current */
+		if (src_idx == preedit->cursor.segment) {
+			new_segments[dst_idx++] = new_segment;
+		}
+	}
+
+	free(preedit->segments);
+	preedit->segments = new_segments;
+	preedit->num_segments = new_num_segments;
+
+	return 0;
+}
