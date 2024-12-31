@@ -196,3 +196,56 @@ int preedit_get_input(preedit_t *preedit, char *dst, const size_t dst_size)
 
 	return (int)offset;
 }
+
+int preedit_get_input_decorated(const preedit_t *preedit, char **dst)
+{
+	string_t *input;
+	int err;
+	short i;
+
+	if (!preedit || !dst) {
+		return -EINVAL;
+	}
+
+	if ((err = string_new(&input)) < 0) {
+		return -ENOMEM;
+	}
+
+	for (i = 0; i < preedit->num_segments; i++) {
+		char *segment;
+		int selected;
+		int cursor;
+		int len;
+
+		segment = NULL;
+
+		if (preedit->cursor.segment == i) {
+			cursor = preedit->cursor.offset;
+			selected = 1;
+		} else {
+			cursor = -1;
+			selected = 0;
+		}
+
+		if ((len = segment_get_input_decorated(preedit->segments[i], selected,
+		                                       cursor, &segment)) < 0) {
+			err = len;
+			goto cleanup;
+		}
+
+		err = string_append_utf8(input, segment, len);
+		free(segment);
+
+		if (err < 0) {
+			goto cleanup;
+		}
+	}
+
+cleanup:
+	if (err >= 0) {
+		err = string_get_utf8(input, dst);
+	}
+	string_free(&input);
+
+	return err;
+}
