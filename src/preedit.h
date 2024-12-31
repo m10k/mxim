@@ -52,4 +52,6 @@ int preedit_get_input(preedit_t *preedit, char *dst, const size_t dst_size);
 int preedit_get_input_decorated(const preedit_t *preedit, char **dst);
 int preedit_get_output(const preedit_t *preedit, char *dst, const size_t dst_size);
 
+int preedit_move_candidate(preedit_t *preedit, const int dir);
+
 #endif /* PREEDIT_H */
