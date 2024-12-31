@@ -95,7 +95,7 @@ int preedit_move(preedit_t *preedit, preedit_dir_t cursor_dir)
 		if (preedit->cursor.segment < 0) {
 			preedit->cursor.segment = 0;
 			err = -ERANGE;
-		} else if (preedit->cursor.segment > preedit->num_segments) {
+		} else if (preedit->cursor.segment >= preedit->num_segments) {
 			preedit->cursor.segment = preedit->num_segments - 1;
 			err = -ERANGE;
 		}
