@@ -178,7 +178,13 @@ int input_method_handle_key(input_method_t *im, input_context_t *ic, keysym_t *k
 	binding = &config_keybindings[ks->key][ks->mod];
 
 	if (im->cmds[binding->cmd]) {
-		return im->cmds[binding->cmd](im, ic, &binding->arg);
+		err = im->cmds[binding->cmd](im, ic, &binding->arg);
+
+		if (!err) {
+			input_context_redraw(ic);
+		}
+
+		return err;
 	}
 
 	assert(input_context_get_language(ic, &ic_lang) == 0);
