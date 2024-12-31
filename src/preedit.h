@@ -53,6 +53,7 @@ int preedit_get_input_decorated(const preedit_t *preedit, char **dst);
 int preedit_get_output(const preedit_t *preedit, char *dst, const size_t dst_size);
 
 int preedit_move_candidate(preedit_t *preedit, const int dir);
+int preedit_select_candidate(preedit_t *preedit, const unsigned int candidate);
 int preedit_move_segment(preedit_t *preedit, const int dir);
 int preedit_insert_segment(preedit_t *preedit);
 

@@ -290,6 +290,26 @@ int preedit_move_candidate(preedit_t *preedit, const int dir)
 	return segment_move_candidate(segment, dir);
 }
 
+int preedit_select_candidate(preedit_t *preedit, const unsigned int candidate)
+{
+	segment_t *segment;
+
+	if (!preedit) {
+		return -EINVAL;
+	}
+
+	if (preedit->cursor.segment < 0 ||
+	    preedit->cursor.segment >= preedit->num_segments) {
+		return -EBADFD;
+	}
+
+	if (!(segment = preedit->segments[preedit->cursor.segment])) {
+		return -ENOENT;
+	}
+
+	return segment_select_candidate(segment, (int)candidate);
+}
+
 int preedit_move_segment(preedit_t *preedit, const int dir)
 {
 	preedit_dir_t cursor_dir;
