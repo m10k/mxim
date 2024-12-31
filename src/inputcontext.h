@@ -24,6 +24,7 @@
 #include "char.h"
 #include "ximtypes.h"
 #include "ximclient.h"
+#include <X11/Xlib.h>
 
 typedef struct input_context input_context_t;
 typedef struct input_method input_method_t;
@@ -44,5 +45,7 @@ int input_context_erase(input_context_t *ic, int dir);
 
 int input_context_set_language(input_context_t *ic, const lang_t language);
 int input_context_get_language(input_context_t *ic, lang_t *language);
+
+int input_context_cursor_move(input_context_t *ic, const int dir);
 
 #endif /* INPUTCONTEXT_H */
