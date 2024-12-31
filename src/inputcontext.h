@@ -48,4 +48,7 @@ int input_context_get_language(input_context_t *ic, lang_t *language);
 
 int input_context_cursor_move(input_context_t *ic, const int dir);
 
+int input_context_move_candidate(input_context_t *ic, const int dir);
+int input_context_select_candidate(input_context_t *ic, const unsigned int candidate);
+
 #endif /* INPUTCONTEXT_H */

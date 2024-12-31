@@ -250,3 +250,21 @@ int input_context_cursor_move(input_context_t *ic, const int dir)
 
 	return preedit_move(ic->preedit, cursor_dir);
 }
+
+int input_context_move_candidate(input_context_t *ic, const int dir)
+{
+	if (!ic) {
+		return -EINVAL;
+	}
+
+	return preedit_move_candidate(ic->preedit, dir);
+}
+
+int input_context_select_candidate(input_context_t *ic, const unsigned int candidate)
+{
+	if (!ic) {
+		return -EINVAL;
+	}
+
+	return preedit_select_candidate(ic->preedit, candidate);
+}
