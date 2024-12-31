@@ -51,4 +51,7 @@ int input_context_cursor_move(input_context_t *ic, const int dir);
 int input_context_move_candidate(input_context_t *ic, const int dir);
 int input_context_select_candidate(input_context_t *ic, const unsigned int candidate);
 
+int input_context_move_segment(input_context_t *ic, const int dir);
+int input_context_insert_segment(input_context_t *ic);
+
 #endif /* INPUTCONTEXT_H */

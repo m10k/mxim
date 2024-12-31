@@ -268,3 +268,27 @@ int input_context_select_candidate(input_context_t *ic, const unsigned int candi
 
 	return preedit_select_candidate(ic->preedit, candidate);
 }
+
+int input_context_move_segment(input_context_t *ic, const int dir)
+{
+	if (!ic) {
+		return -EINVAL;
+	}
+
+	return preedit_move_segment(ic->preedit, dir);
+}
+
+int input_context_insert_segment(input_context_t *ic)
+{
+	int err;
+
+	if (!ic) {
+		return -EINVAL;
+	}
+
+	if (!(err = preedit_insert_segment(ic->preedit))) {
+		err = preedit_move_segment(ic->preedit, 1);
+	}
+
+	return err;
+}
