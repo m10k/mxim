@@ -292,3 +292,23 @@ int input_context_insert_segment(input_context_t *ic)
 
 	return err;
 }
+
+int input_context_redraw(const input_context_t *ic)
+{
+	char *hint;
+	int err;
+
+	if (!ic) {
+		return -EINVAL;
+	}
+
+	if ((err = preedit_get_input_decorated(ic->preedit, &hint)) < 0) {
+		return err;
+	}
+
+	err = x_handler_set_text_property(xhandler, ic->window, "MWM_HINT",
+	                                  strlen(hint) ? hint : " ");
+	free(hint);
+
+	return err;
+}
