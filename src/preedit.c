@@ -168,6 +168,9 @@ int preedit_clear(preedit_t *preedit)
 		}
 	}
 
+	preedit->cursor.segment = 0;
+	preedit->cursor.offset = 0;
+
 	return segment_clear(preedit->segments[0]);
 }
 
