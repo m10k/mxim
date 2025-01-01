@@ -55,6 +55,7 @@ int segment_free(segment_t **segment)
 	}
 
 	free((*segment)->input);
+	free((*segment)->candidates);
 	free(*segment);
 	*segment = 0;
 	return 0;
