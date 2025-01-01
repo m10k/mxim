@@ -147,6 +147,11 @@ int segment_clear(segment_t *segment)
 	memset(segment->input, 0, segment->size * sizeof(*segment->input));
 	segment->len = 0;
 
+	free(segment->candidates);
+	segment->candidates = NULL;
+	segment->num_candidates = 0;
+	segment->selection = -1;
+
 	return 0;
 }
 
