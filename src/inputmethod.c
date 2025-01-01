@@ -1,6 +1,6 @@
 /*
  * inputmethod.c - This file is part of mxim
- * Copyright (C) 2024 Matthias Kruk
+ * Copyright (C) 2024-2025 Matthias Kruk
  *
  * Mxim is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published
@@ -179,23 +179,23 @@ int input_method_handle_key(input_method_t *im, input_context_t *ic, keysym_t *k
 
 	if (im->cmds[binding->cmd]) {
 		err = im->cmds[binding->cmd](im, ic, &binding->arg);
+	} else {
+		assert(input_context_get_language(ic, &ic_lang) == 0);
 
-		if (!err) {
-			input_context_redraw(ic);
+		if (config_keysym_to_char(&chr, ks, ic_lang) < 0) {
+			/*
+			 * Keysym has no corresponding character in the current
+			 * language -> return event to sender.
+			 */
+			err = -1;
+		} else {
+			err = input_context_insert(ic, chr);
 		}
-
-		return err;
 	}
 
-	assert(input_context_get_language(ic, &ic_lang) == 0);
-
-	if (config_keysym_to_char(&chr, ks, ic_lang) < 0) {
-		/*
-		 * Keysym has no corresponding character in the current
-		 * language -> return event to sender.
-		 */
-		return -1;
+	if (!err) {
+		input_context_redraw(ic);
 	}
 
-	return input_context_insert(ic, chr);
+	return err;
 }
