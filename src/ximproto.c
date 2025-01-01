@@ -1,6 +1,6 @@
 /*
  * ximproto.c - This file is part of mxim
- * Copyright (C) 2024 Matthias Kruk
+ * Copyright (C) 2024-2025 Matthias Kruk
  *
  * Mxim is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published
@@ -592,7 +592,7 @@ static int decode_XIM_QUERY_EXTENSION(xim_msg_t **dst, const struct XIM_QUERY_EX
 			return -EBADMSG;
 		}
 
-		if (!(new_exts = realloc(msg->exts, sizeof(char*) * msg->num_exts + 1))) {
+		if (!(new_exts = realloc(msg->exts, sizeof(char*) * (msg->num_exts + 1)))) {
 			free(msg);
 			return -ENOMEM;
 		}
