@@ -1,6 +1,6 @@
 /*
  * segment.h - This file is part of mxim
- * Copyright (C) 2024 Matthias Kruk
+ * Copyright (C) 2024-2025 Matthias Kruk
  *
  * Mxim is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published
@@ -29,7 +29,7 @@ struct segment {
 	short size;
 	short len;
 
-	char **candidates;
+	const char **candidates;
 	int num_candidates;
 	int selection;
 };
@@ -50,7 +50,7 @@ int segment_get_input_decorated(segment_t *segment, const int selected, const in
 int segment_get_output(segment_t *segment, char *dst, const size_t dst_size);
 
 int segment_select_candidate(segment_t *segment, const int selection);
-int segment_set_candidates(segment_t *segment, char **candidates);
+int segment_set_candidates(segment_t *segment, const char **candidates);
 int segment_get_candidates(segment_t *segment, char ***candidates);
 int segment_move_candidate(segment_t *segment, const int dir);
 

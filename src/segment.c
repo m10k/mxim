@@ -1,6 +1,6 @@
 /*
  * segment.c - This file is part of mxim
- * Copyright (C) 2024 Matthias Kruk
+ * Copyright (C) 2024-2025 Matthias Kruk
  *
  * Mxim is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published
@@ -292,34 +292,38 @@ int segment_select_candidate(segment_t *segment, const int selection)
 	return 0;
 }
 
-int segment_set_candidates(segment_t *segment, char **candidates)
+int segment_set_candidates(segment_t *segment, const char **candidates)
 {
-	char *old_selection;
+	const char *old_selection;
 	int new_selection;
-	char **new_candidates;
+	const char **new_candidates;
 	int num_candidates;
 
-	new_selection = -1;
 	old_selection = NULL;
+	new_selection = -1;
+	new_candidates = NULL;
+	num_candidates = 0;
 
-	if (segment->selection < 0 || segment->selection >= segment->num_candidates) {
+	if (segment->selection >= 0 && segment->selection < segment->num_candidates) {
 		old_selection = segment->candidates[segment->selection];
 	}
 
-	for (num_candidates = 0; candidates[num_candidates]; num_candidates++) {
-		/*
-		 * While we're checking the size of the array, check also if the old
-		 * selection is present in the new candidate array.
-		 */
-		if (old_selection && old_selection == candidates[num_candidates]) {
-			new_selection = num_candidates;
+	if (candidates) {
+		for (num_candidates = 0; candidates[num_candidates]; num_candidates++) {
+			/*
+			 * While we're checking the size of the array, check also if the old
+			 * selection is present in the new candidate array.
+			 */
+			if (old_selection && old_selection == candidates[num_candidates]) {
+				new_selection = num_candidates;
+			}
 		}
-	}
 
-	if (!(new_candidates = calloc(num_candidates + 1, sizeof(*new_candidates)))) {
-		return -ENOMEM;
+		if (!(new_candidates = calloc(num_candidates + 1, sizeof(*new_candidates)))) {
+			return -ENOMEM;
+		}
+		memmove(new_candidates, candidates, num_candidates * sizeof(*candidates));
 	}
-	memmove(new_candidates, candidates, num_candidates * sizeof(*candidates));
 
 	free(segment->candidates);
 	segment->candidates = new_candidates;
