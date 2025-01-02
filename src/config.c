@@ -1,6 +1,6 @@
 /*
  * config.c - This file is part of mxim
- * Copyright (C) 2024 Matthias Kruk
+ * Copyright (C) 2024-2025 Matthias Kruk
  *
  * Mxim is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published
@@ -226,7 +226,7 @@ static const struct keymap _config_keymap_ja = {
 				[KEY_7]          = CHAR_JA_YA,
 				[KEY_8]          = CHAR_JA_YU,
 				[KEY_9]          = CHAR_JA_YO,
-				[KEY_0]          = CHAR_JA_WO,
+				[KEY_0]          = CHAR_JA_WA,
 				[KEY_MINUS]      = CHAR_JA_HO,
 				[KEY_CIRCUMFLEX] = CHAR_JA_HE,
 				[KEY_YEN]        = CHAR_JA_CHOUON,
