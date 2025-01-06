@@ -33,8 +33,11 @@ static input_method_t _null_im = {
 	.locale = "invalid"
 };
 
+extern input_method_t _jkim;
+
 static input_method_t *_input_methods[] = {
-	&_null_im
+	&_null_im,
+	&_jkim
 };
 
 input_method_t* input_method_for_locale(const char *locale)
