@@ -28,6 +28,7 @@ typedef struct string string_t;
 int string_new(string_t **str);
 int string_free(string_t **str);
 
+int string_clear(string_t *str);
 int string_append(string_t *dst, const string_t *src);
 int string_append_char(string_t *dst, const char_t *src, const size_t src_len);
 int string_append_utf8(string_t *dst, const char *src, const size_t src_len);

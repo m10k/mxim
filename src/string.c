@@ -67,6 +67,18 @@ int string_free(string_t **str)
 	return 0;
 }
 
+int string_clear(string_t *str)
+{
+	if (!str) {
+		return -EINVAL;
+	}
+
+	memset(str->str, 0, str->size);
+	str->len = 0;
+
+	return 0;
+}
+
 static int _string_grow(string_t *str, const size_t size_request)
 {
 	char *new_str;
