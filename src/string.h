@@ -21,6 +21,7 @@
 #ifndef STRING_H
 #define STRING_H
 
+#include "char.h"
 #include <stddef.h>
 
 typedef struct string string_t;
