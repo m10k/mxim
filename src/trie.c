@@ -21,6 +21,7 @@
 #include "char.h"
 #include "trie.h"
 #include <errno.h>
+#include <limits.h>
 #include <stddef.h>
 #include <stdint.h>
 #include <stdlib.h>
@@ -29,8 +30,8 @@
 struct trie {
 	trie_t *children[256];
 
-	char **candidates;
-	int num_candidates;
+	void **values;
+	int num_values;
 };
 
 int trie_new(trie_t **trie)
@@ -57,11 +58,11 @@ int trie_free(trie_t **trie)
 	return 0;
 }
 
-int trie_insert(trie_t *trie, const char_t *key, const char **candidates, const size_t num_candidates)
+int trie_insert(trie_t *trie, const char_t *key, const void **values, const size_t num_values)
 {
 	int err;
 
-	if (!trie || !key || !candidates || !num_candidates) {
+	if (!trie || !key || !values || !num_values) {
 		return -EINVAL;
 	}
 
@@ -71,90 +72,86 @@ int trie_insert(trie_t *trie, const char_t *key, const char **candidates, const 
 			return err;
 		}
 
-		return trie_insert(trie->children[*key], key + 1, candidates, num_candidates);
+		return trie_insert(trie->children[*key], key + 1, values, num_values);
 	}
 
-	return trie_add_candidates(trie, candidates, num_candidates);
+	return trie_add_values(trie, values, num_values);
 }
 
-int trie_add_candidates(trie_t *trie, const char **candidates, const size_t num_candidates)
+int trie_add_values(trie_t *trie, const void **values, const size_t num_values)
 {
-	size_t new_num_candidates;
-	char **new_candidates;
+	size_t new_num_values;
+	void **new_values;
 
-	if (SIZE_MAX - trie->num_candidates <= num_candidates) {
+	if (SIZE_MAX - trie->num_values <= num_values) {
 		return -EOVERFLOW;
 	}
 
-	new_num_candidates = trie->num_candidates + num_candidates;
-	new_candidates = realloc(trie->candidates, (new_num_candidates + 1) * sizeof(*new_candidates));
+	new_num_values = trie->num_values + num_values;
+	new_values = realloc(trie->values, (new_num_values + 1) * sizeof(*new_values));
 
-	if (!new_candidates) {
+	if (!new_values) {
 		return -ENOMEM;
 	}
 
-	memmove(new_candidates + trie->num_candidates, candidates, num_candidates * sizeof(*candidates));
-	trie->candidates = new_candidates;
-	trie->num_candidates = new_num_candidates;
+	memmove(new_values + trie->num_values, values, num_values * sizeof(*values));
+	trie->values = new_values;
+	trie->num_values = new_num_values;
 
 	return 0;
 }
 
-int candidate_new(candidate_t **candidate, const char *str)
+static int _trie_append_to_array(trie_t *trie, void ***array)
 {
-	candidate_t *c;
+	void **new_array;
+	int new_len;
+	int len;
 
-	if (!candidate || !str) {
+	len = 0;
+
+	if (!trie || !array) {
 		return -EINVAL;
 	}
 
-	if (!(c = calloc(1, sizeof(*c)))) {
-		return -ENOMEM;
-	}
-
-	c->candidate = str;
-	*candidate = c;
-	return 0;
-}
-
-int trie_append_to_list(trie_t *trie, candidate_t **list)
-{
-	int i;
-
-	if (!trie || !list) {
-		return -EINVAL;
-	}
-
-	while (*list) {
-		list = &(*list)->next;
-	}
-
-	for (i = 0; i < trie->num_candidates; i++) {
-		if (candidate_new(list, trie->candidates[i]) < 0) {
-			break;
+	if (*array) {
+		while ((*array)[len]) {
+			len++;
 		}
-
-		list = &(*list)->next;
 	}
+
+	if (INT_MAX - len <= trie->num_values) {
+		return -EOVERFLOW;
+	}
+
+	new_len = len + trie->num_values;
+	new_array = realloc(*array, (new_len + 1) * sizeof(**array));
+
+	if (!new_array) {
+		return -ENOMEM;
+	}
+
+	memmove(new_array + len, trie->values, sizeof(*trie->values) * trie->num_values);
+	new_array[new_len] = NULL;
+	*array = new_array;
 
 	return 0;
 }
 
-int trie_get_candidates(trie_t *trie, const char_t *key, candidate_t **candidates)
+int trie_get_values(trie_t *trie, const char_t *key, void ***values)
 {
 	int i;
 
-	if (!trie || !key || !candidates) {
+	if (!trie || !key || !values) {
 		return -EINVAL;
 	}
 
 	if (*key != CHAR_INVALID) {
-		return trie_get_candidates(trie->children[*key], key + 1, candidates);
+		return trie_get_values(trie->children[*key], key + 1, values);
 	} else {
-		trie_append_to_list(trie, candidates);
+		_trie_append_to_array(trie, values);
 
 		for (i = 0; i < (sizeof(trie->children) / sizeof(trie->children[0])); i++) {
-			trie_get_candidates(trie->children[i], key, candidates);
+			trie_get_values(trie->children[i], key, values);
 		}
 	}
 

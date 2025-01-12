@@ -25,18 +25,12 @@
 #include <stddef.h>
 
 typedef struct trie trie_t;
-typedef struct candidate candidate_t;
-
-struct candidate {
-	const char *candidate;
-	candidate_t *next;
-};
 
 int trie_new(trie_t **trie);
 int trie_free(trie_t **trie);
 
-int trie_insert(trie_t *trie, const char_t *key, const char **candidates, const size_t num_candidates);
-int trie_add_candidates(trie_t *trie, const char **candidates, const size_t num_candidates);
-int trie_get_candidates(trie_t *trie, const char_t *key, candidate_t **candidates);
+int trie_insert(trie_t *trie, const char_t *key, const void **values, const size_t num_values);
+int trie_add_values(trie_t *trie, const void **values, const size_t num_values);
+int trie_get_values(trie_t *trie, const char_t *key, void ***values);
 
 #endif /* TRIE_H */
