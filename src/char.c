@@ -18,10 +18,35 @@
  * Boston, MA 02111-1307, USA.
  */
 
+#define _POSIX_C_SOURCE 200809L
 #include "char.h"
 #include <errno.h>
-#include <stdlib.h>
+#include <limits.h>
+#include <stdint.h>
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+/*
+ * Conversion from UTF-8 to char_t is implemented
+ * with a lookup tree where the node at the n-th
+ * level contains the n-th byte of the UTF-8 sequence.
+ *
+ * The `data` field in a node refers to either an
+ * array of char_t (the conversion result) or another
+ * node. In the former case, the corresponding `len`
+ * is the length of the char_t array (without the
+ * terminating 0-byte); in the case that the data
+ * field points to another node, the length is 0.
+ * This reduces the size of the tree from ~400K to
+ * ~18K.
+ */
+struct lut_node {
+	unsigned char len[256];
+	void *data[256];
+};
+
+struct lut_node *_lut_root = NULL;
 
 static const char *_charmap[] = {
 	[CHAR_INVALID]    = "\0",
@@ -257,6 +282,150 @@ static const char *_charmap[] = {
 	[CHAR_LAST] = ""
 };
 
+static char_t* _chardup(char_t chr)
+{
+	char_t *dup;
+
+	if ((dup = malloc(2 * sizeof(*dup)))) {
+		dup[0] = chr;
+		dup[1] = CHAR_INVALID;
+	}
+
+	return dup;
+}
+
+static int _lut_insert_node(struct lut_node *node, int idx)
+{
+	struct lut_node *dir;
+
+	if (!(dir = calloc(1, sizeof(*dir)))) {
+		return -ENOMEM;
+	}
+
+	dir->data[0] = node->data[idx];
+	dir->len[0] = node->len[idx];
+	node->data[idx] = dir;
+	node->len[idx] = 0;
+
+	return 0;
+}
+
+static int _lut_insert(struct lut_node *node, const char *key, const char_t *value, const size_t value_len)
+{
+	unsigned char idx;
+
+	if (!node || !key || !value) {
+		return -EINVAL;
+	}
+
+	if (value_len > UCHAR_MAX) {
+		return -EMSGSIZE;
+	}
+
+	idx = (unsigned char)*key;
+
+	if (idx == 0 || (*(key + 1) == 0 && !node->data[idx])) {
+		/* insert here */
+		node->data[idx] = strdup((char*)value);
+		node->len[idx] = (unsigned char)value_len;
+
+		return node->data[idx] ? 0 : -ENOMEM;
+	}
+
+	/* make sure we have a node at data[idx] */
+	if ((!node->data[idx] || node->len[idx] > 0) &&
+	    _lut_insert_node(node, idx) < 0) {
+		return -ENOMEM;
+	}
+
+	return _lut_insert((struct lut_node*)node->data[idx],
+	                   key + 1, value, value_len);
+}
+
+static int _lut_find(struct lut_node *node, const char *key, const char_t **value)
+{
+	unsigned int idx;
+	int len;
+
+	if (!node || !key || !value) {
+		return -EINVAL;
+	}
+
+	idx = (unsigned char)*key;
+
+	if (idx == 0 || node->len[idx] > 0) {
+		*value = (const char_t*)node->data[idx];
+		len = idx == 0 ? 0 : 1;
+	} else {
+		if ((len = _lut_find((struct lut_node*)node->data[idx], key + 1, value)) >= 0) {
+			len++;
+		}
+	}
+
+	return len;
+}
+
+static int _lut_free(struct lut_node **node)
+{
+	int i;
+
+	if (!node || !*node) {
+		return -EINVAL;
+	}
+
+	for (i = 0; i < (sizeof((*node)->data) / sizeof((*node)->data[0])); i++) {
+		if ((*node)->data[i]) {
+			if ((*node)->len[i] == 0) {
+				_lut_free((struct lut_node**)&(*node)->data[i]);
+			} else {
+				free((*node)->data[i]);
+				(*node)->data[i] = NULL;
+			}
+		}
+	}
+
+	return 0;
+}
+
+static int _lut_init(void)
+{
+	int err;
+	int i;
+
+	if (_lut_root) {
+		/* already initialized */
+		return 0;
+	}
+
+	if (!(_lut_root = calloc(1, sizeof(*_lut_root)))) {
+		return -ENOMEM;
+	}
+
+	err = 0;
+
+	for (i = 0; i < CHAR_LAST; i++) {
+		char_t *value;
+		size_t value_len;
+
+		if (!_charmap[i]) {
+			continue;
+		}
+
+		value = _chardup((char_t)i);
+		value_len = strlen((char*)value) + 1;
+
+		if ((err = _lut_insert(_lut_root, _charmap[i], value, value_len)) < 0) {
+			break;
+		}
+	}
+
+	if (err) {
+		_lut_free(&_lut_root);
+	}
+
+	return err;
+}
+
 int char_to_utf8(const char_t *src, const size_t src_len, char *dst, const size_t dst_size)
 {
 	size_t src_idx;
@@ -279,7 +448,7 @@ int char_to_utf8(const char_t *src, const size_t src_len, char *dst, const size_
 	return (int)dst_offset;
 }
 
-int _estimate_size(const char_t *src, const size_t src_len)
+static int _estimate_size(const char_t *src, const size_t src_len)
 {
 	int size;
 	int i;
@@ -316,4 +485,68 @@ int char_to_utf8_dyn(const char_t *src, const size_t src_len, char **dst)
 
 	*dst = buffer;
 	return char_to_utf8(src, src_len, buffer, buffer_size + 1);
+}
+
+int char_from_utf8(const char *src, const size_t src_len, char_t **dst)
+{
+	char_t *result;
+	size_t result_size;
+	size_t src_offset;
+	size_t dst_offset;
+	int err;
+
+	if (!src || !dst) {
+		return -EINVAL;
+	}
+
+	if (src_len == SIZE_MAX) {
+		return -EOVERFLOW;
+	}
+
+	if (!_lut_root) {
+		if ((err = _lut_init()) < 0) {
+			return err;
+		}
+	}
+
+	err = 0;
+
+	/*
+	 * Since each Japanese and Korean character uses at least three bytes in UTF-8,
+	 * the input length is a safe upper boundary for the output length.
+	 */
+	result_size = src_len + 1;
+	if (!(result = malloc(result_size))) {
+		return -ENOMEM;
+	}
+
+	for (dst_offset = src_offset = 0; src_offset < src_len; ) {
+		const char_t *char_data;
+		int char_len;
+		int j;
+
+		char_data = NULL;
+		char_len = _lut_find(_lut_root, src + src_offset, &char_data);
+
+		if (char_len < 0 || !char_data) {
+			err = -EBADMSG;
+			break;
+		}
+
+		for (j = 0; char_data[j] != CHAR_INVALID; j++) {
+			result[dst_offset++] = char_data[j];
+		}
+
+		src_offset += char_len;
+	}
+
+	if (err) {
+		free(result);
+	} else {
+		result[dst_offset] = CHAR_INVALID;
+		*dst = result;
+		err = (int)dst_offset;
+	}
+
+	return err;
 }
