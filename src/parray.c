@@ -26,12 +26,12 @@
 #include <string.h>
 
 struct parray {
-	int (*cmp)(void*, void*);
-	void **items;
+	int (*cmp)(const void*, const void*);
+	const void **items;
 	int num_items;
 };
 
-int parray_new(parray_t **parray, int (*cmp)(void*, void*))
+int parray_new(parray_t **parray, int (*cmp)(const void*, const void*))
 {
 	parray_t *pa;
 
@@ -57,54 +57,56 @@ int parray_free(parray_t **parray)
 	return 0;
 }
 
-static int _find_slot(parray_t *parray, void *data)
+static int _find_slot(const void **items, const int num_items,
+                      const void *data, int(*cmp)(const void*, const void*))
 {
 	int i;
 
-	for (i = 0; i < parray->num_items; i++) {
-		if (parray->cmp(parray->items[i], data) > 0) {
-			return i;
+	for (i = 0; i < num_items; i++) {
+		if (cmp(items[i], data) > 0) {
+			break;
 		}
 	}
 
 	return i;
 }
 
-int parray_insert(parray_t *parray, void *data)
+int parray_insert(parray_t *parray, const void **data, const int n)
 {
-	void **new_items;
+	const void **new_items;
 	int new_num_items;
 	int slot;
+	int i;
 
-	if (!parray || !data) {
+	if (!parray || !data || n < 0) {
 		return -EINVAL;
 	}
 
-	if (parray->num_items == INT_MAX) {
+	if (INT_MAX - parray->num_items <= n) {
 		return -ENOBUFS;
 	}
 
-	slot = _find_slot(parray, data);
-
-	new_num_items = parray->num_items + 1;
-	if (!(new_items = realloc(parray->items, new_num_items * sizeof(*parray->items)))) {
+	new_num_items = parray->num_items + n;
+	if (!(new_items = realloc(parray->items, (new_num_items + 1) * sizeof(*parray->items)))) {
 		return -ENOMEM;
 	}
 
-	memmove(&new_items[slot + 1],
-	        &new_items[slot],
-	        (parray->num_items - slot) * sizeof(*new_items));
-	new_items[slot] = data;
-
+	for (i = 0; i < n; i++) {
+		slot = _find_slot(new_items, parray->num_items, data[i], parray->cmp);
+		memmove(&new_items[slot + 1],
+		        &new_items[slot],
+		        (parray->num_items - slot) * sizeof(*new_items));
+		new_items[slot] = data[i];
+		parray->num_items++;
+	}
 	parray->items = new_items;
-	parray->num_items = new_num_items;
 
 	return 0;
 }
 
-int parray_get_items(parray_t *parray, void ***items)
+int parray_get_items(parray_t *parray, const void ***items)
 {
-	void **arr;
+        void **arr;
 
 	if (!(arr = malloc((parray->num_items + 1) * sizeof(*arr)))) {
 		return -ENOMEM;
@@ -113,6 +115,6 @@ int parray_get_items(parray_t *parray, void ***items)
 	memcpy(arr, parray->items, parray->num_items * sizeof(*arr));
 	arr[parray->num_items] = NULL;
 
-	*items = arr;
+	*items = (const void**)arr;
 	return 0;
 }

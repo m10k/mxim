@@ -23,10 +23,10 @@
 
 typedef struct parray parray_t;
 
-int parray_new(parray_t **parray, int (*cmp)(void*, void*));
+int parray_new(parray_t **parray, int (*cmp)(const void*, const void*));
 int parray_free(parray_t **parray);
 
-int parray_insert(parray_t *parray, void *data);
-int parray_get_items(parray_t *parray, void ***items);
+int parray_insert(parray_t *parray, const void **data, const int n);
+int parray_get_items(parray_t *parray, const void ***items);
 
 #endif /* PARRAY_H */
