@@ -656,10 +656,6 @@ static int _have_token_with_type(lexer_t *lexer, va_list types)
 
 	while ((expected = va_arg(types, token_type_t)) > 0 &&
 	       token_type_valid(expected)) {
-		fprintf(stderr, "%s: %s == %s ?\n", __func__,
-		        _token_type_str(lexer->next_token->type),
-		        _token_type_str(expected));
-
 		if (lexer->next_token->type == expected) {
 			matches = 1;
 			break;
