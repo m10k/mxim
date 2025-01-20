@@ -18,6 +18,7 @@
  * Boston, MA 02111-1307, USA.
  */
 
+#include "aide.h"
 #include "char.h"
 #include "segment.h"
 #include "string.h"
@@ -236,8 +237,8 @@ int segment_get_input_decorated(segment_t *segment, const int selected, const in
 			}
 
 			if ((err = string_new(&escape)) < 0 ||
-			    (err = string_append_utf8(escape, segment->candidates[i],
-			                              strlen(segment->candidates[i]))) < 0 ||
+			    (err = string_append_utf8(escape, segment->candidates[i]->value,
+			                              strlen(segment->candidates[i]->value))) < 0 ||
 			    (err = string_replace(escape, "&", "&amp;")) < 0 ||
 			    (err = string_replace(escape, "<", "&lt;")) < 0 ||
 			    (err = string_replace(escape, ">", "&gt;")) < 0 ||
@@ -280,8 +281,8 @@ int segment_get_output(segment_t *segment, char *dst, const size_t dst_size)
 		/* no candidate selected - return input */
 		return segment_get_input(segment, dst, dst_size);
 	}
-
-	return snprintf(dst, dst_size, "%s", segment->candidates[segment->selection]);
+	segment->candidates[segment->selection]->priority++;
+	return snprintf(dst, dst_size, "%s", segment->candidates[segment->selection]->value);
 }
 
 int segment_select_candidate(segment_t *segment, const int selection)
@@ -298,16 +299,14 @@ int segment_select_candidate(segment_t *segment, const int selection)
 	return 0;
 }
 
-int segment_set_candidates(segment_t *segment, const char **candidates)
+int segment_set_candidates(segment_t *segment, dict_candidate_t **candidates)
 {
-	const char *old_selection;
+	dict_candidate_t *old_selection;
 	int new_selection;
-	const char **new_candidates;
 	int num_candidates;
 
 	old_selection = NULL;
 	new_selection = -1;
-	new_candidates = NULL;
 	num_candidates = 0;
 
 	if (segment->selection >= 0 && segment->selection < segment->num_candidates) {
@@ -324,40 +323,27 @@ int segment_set_candidates(segment_t *segment, const char **candidates)
 				new_selection = num_candidates;
 			}
 		}
-
-		if (!(new_candidates = calloc(num_candidates + 1, sizeof(*new_candidates)))) {
-			return -ENOMEM;
-		}
-		memmove(new_candidates, candidates, num_candidates * sizeof(*candidates));
 	}
 
 	free(segment->candidates);
-	segment->candidates = new_candidates;
+	segment->candidates = candidates;
 	segment->num_candidates = num_candidates;
 	segment->selection = new_selection;
 
 	return num_candidates;
 }
 
-int segment_get_candidates(segment_t *segment, char ***candidates)
+int segment_get_candidates(segment_t *segment, dict_candidate_t ***candidates)
 {
-	char **new_candidates;
-
 	if (!segment || !candidates) {
 		return -EINVAL;
 	}
 
-	if (!segment->num_candidates) {
+	if (!segment->candidates || !segment->num_candidates) {
 		return -ENOENT;
 	}
 
-	if (!(new_candidates = calloc(segment->num_candidates + 1, sizeof(*new_candidates)))) {
-		return -ENOMEM;
-	}
-
-	memmove(new_candidates, segment->candidates,
-	        segment->num_candidates * sizeof(*new_candidates));
-
+	*candidates = segment->candidates;
 	return segment->num_candidates;
 }
 
@@ -372,6 +358,24 @@ int segment_move_candidate(segment_t *segment, const int dir)
 	while (segment->selection < 0) {
 		segment->selection += segment->num_candidates;
 	}
+
+	return 0;
+}
+
+int segment_update_candidates(segment_t *segment)
+{
+	dict_candidate_t **candidates;
+
+	if (!segment) {
+		return -EINVAL;
+	}
+
+	candidates = NULL;
+
+	if (segment->len > 0) {
+		aide_suggest(segment->input, &candidates);
+	}
+	segment_set_candidates(segment, candidates);
 
 	return 0;
 }
