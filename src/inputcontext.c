@@ -201,24 +201,43 @@ int input_context_get_client(input_context_t *ic, xim_client_t **client)
 	return 0;
 }
 
+int input_context_update_candidates(input_context_t *ic)
+{
+	return preedit_update_candidates(ic->preedit);
+}
+
 int input_context_insert(input_context_t *ic, const char_t chr)
 {
 	preedit_dir_t dir;
+	int err;
 
 	dir.segment = 0;
 	dir.offset = 1;
 
-	return preedit_insert(ic->preedit, chr, dir);
+	err = preedit_insert(ic->preedit, chr, dir);
+
+	if (!err) {
+		input_context_update_candidates(ic);
+	}
+
+	return err;
 }
 
 int input_context_erase(input_context_t *ic, int dir)
 {
 	preedit_dir_t cursor_dir;
+	int err;
 
 	cursor_dir.segment = 0;
 	cursor_dir.offset = dir;
 
-	return preedit_erase(ic->preedit, cursor_dir);
+	err = preedit_erase(ic->preedit, cursor_dir);
+
+	if (!err) {
+		input_context_update_candidates(ic);
+	}
+
+	return err;
 }
 
 int input_context_set_language(input_context_t *ic, const lang_t language)
