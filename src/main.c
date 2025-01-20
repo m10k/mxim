@@ -1,6 +1,6 @@
 /*
  * main.c - This file is part of mxim
- * Copyright (C) 2024 Matthias Kruk
+ * Copyright (C) 2024-2025 Matthias Kruk
  *
  * Mxim is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published
@@ -18,6 +18,7 @@
  * Boston, MA 02111-1307, USA.
  */
 
+#include "aide.h"
 #include "xhandler.h"
 #include "ximserver.h"
 #include <errno.h>
@@ -67,6 +68,15 @@ int main(int argc, char *argv[])
 			break;
 		}
 	} while (ret >= 0);
+
+	ret = aide_init();
+	if (ret < 0) {
+		fprintf(stderr, "Could not initialize aide: %s\n", strerror(-ret));
+		return 5;
+	}
+#if MXIM_DEBUG
+	fprintf(stderr, "Aide initialized\n");
+#endif /* MXIM_DEBUG */
 
 	ret = x_handler_init(&xhandler);
 	if (ret < 0) {
