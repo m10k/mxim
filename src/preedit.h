@@ -1,6 +1,6 @@
 /*
  * preedit.h - This file is part of mxim
- * Copyright (C) 2024 Matthias Kruk
+ * Copyright (C) 2024-2025 Matthias Kruk
  *
  * Mxim is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published
@@ -56,5 +56,6 @@ int preedit_move_candidate(preedit_t *preedit, const int dir);
 int preedit_select_candidate(preedit_t *preedit, const unsigned int candidate);
 int preedit_move_segment(preedit_t *preedit, const int dir);
 int preedit_insert_segment(preedit_t *preedit);
+int preedit_update_candidates(preedit_t *preedit);
 
 #endif /* PREEDIT_H */

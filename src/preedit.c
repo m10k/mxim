@@ -1,6 +1,6 @@
 /*
  * preedit.c - This file is part of mxim
- * Copyright (C) 2024 Matthias Kruk
+ * Copyright (C) 2024-2025 Matthias Kruk
  *
  * Mxim is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published
@@ -358,4 +358,24 @@ int preedit_insert_segment(preedit_t *preedit)
 	preedit->num_segments = new_num_segments;
 
 	return 0;
+}
+
+int preedit_update_candidates(preedit_t *preedit)
+{
+	segment_t *segment;
+
+	if (!preedit) {
+		return -EINVAL;
+	}
+
+	if (preedit->cursor.segment < 0 ||
+	    preedit->cursor.segment >= preedit->num_segments) {
+		return -EBADFD;
+	}
+
+	if (!(segment = preedit->segments[preedit->cursor.segment])) {
+		return -ENOENT;
+	}
+
+	return segment_update_candidates(segment);
 }
