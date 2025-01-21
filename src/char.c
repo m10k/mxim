@@ -1,6 +1,6 @@
 /*
  * char.c - This file is part of mxim
- * Copyright (C) 2024 Matthias Kruk
+ * Copyright (C) 2024-2025 Matthias Kruk
  *
  * Mxim is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published
@@ -200,7 +200,6 @@ static const char *_charmap[] = {
 	[CHAR_JA_RO]     = "ろ",
 	[CHAR_JA_YA]     = "や",
 	[CHAR_JA_YU]     = "ゆ",
-	[CHAR_JA_YE]     = "ゑ", /* ゑ/ヱ */
 	[CHAR_JA_YO]     = "よ",
 	[CHAR_JA_ya]     = "ゃ", /* ゃ */
 	[CHAR_JA_yu]     = "ゅ", /* ゅ */
@@ -232,9 +231,15 @@ static const char *_charmap[] = {
 	[CHAR_JA_MO]     = "も",
 	[CHAR_JA_WA]     = "わ",
 	[CHAR_JA_WI]     = "ゐ", /* ゐ/ヰ */
+	[CHAR_JA_WE]     = "ゑ", /* ゑ/ヱ */
 	[CHAR_JA_WO]     = "を",
 	[CHAR_JA_wa]     = "ゎ", /* ゎ */
 	[CHAR_JA_N]      = "ん",
+	[CHAR_JA_VA]     = "ヷ",
+	[CHAR_JA_VI]     = "ヸ",
+	[CHAR_JA_VU]     = "ヴ",
+	[CHAR_JA_VE]     = "ヹ",
+	[CHAR_JA_VO]     = "ヺ",
 
         [CHAR_JA_CHOUON]     = "ー",
         [CHAR_JA_DAKUTEN]    = "゛",

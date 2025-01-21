@@ -1,6 +1,6 @@
 /*
  * char.h - This file is part of mxim
- * Copyright (C) 2024 Matthias Kruk
+ * Copyright (C) 2024-2025 Matthias Kruk
  *
  * Mxim is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published
@@ -175,7 +175,6 @@ typedef enum {
 	CHAR_JA_RO,
 	CHAR_JA_YA,
 	CHAR_JA_YU,
-	CHAR_JA_YE, /* ゑ/ヱ */
 	CHAR_JA_YO,
 	CHAR_JA_ya, /* ゃ */
 	CHAR_JA_yu, /* ゅ */
@@ -207,9 +206,15 @@ typedef enum {
 	CHAR_JA_MO,
 	CHAR_JA_WA,
 	CHAR_JA_WI, /* ゐ/ヰ */
+	CHAR_JA_WE, /* ゑ/ヱ */
 	CHAR_JA_WO,
 	CHAR_JA_wa, /* ゎ */
 	CHAR_JA_N,
+	CHAR_JA_VA,
+	CHAR_JA_VI,
+	CHAR_JA_VU,
+	CHAR_JA_VE,
+	CHAR_JA_VO,
 
         CHAR_JA_CHOUON, /* ー（長音棒）*/
         CHAR_JA_DAKUTEN,
