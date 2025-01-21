@@ -30,9 +30,17 @@
 #include <string.h>
 #include <unistd.h>
 
+#define LEXER_BUFFER_SIZE (1024 * 1024)
+
 struct lexer {
 	/* input file descriptor */
 	int fd;
+
+	struct {
+		unsigned char data[LEXER_BUFFER_SIZE];
+		int offset;
+		int len;
+	} buffer;
 
 	/* the lexeme currently getting lexed */
 	string_t *lexeme;
@@ -189,37 +197,45 @@ int lexer_get_position(const lexer_t *lexer, int *line, int *col)
 static int _lexer_get_char(lexer_t *lexer, char *dst)
 {
 	int err;
-	char c;
 
 	if (!lexer || !dst) {
 		return -EINVAL;
 	}
 
-	if (lexer->fd < 0) {
-		/* A previous backstep or read failed */
-		return -EBADFD;
+	if (lexer->buffer.offset >= lexer->buffer.len) {
+		if (lexer->fd < 0) {
+			err = -EBADFD;
+			goto gtfo;
+		}
+
+		err = read(lexer->fd, &lexer->buffer.data, sizeof(lexer->buffer.data));
+
+		if (err < 0) {
+			err = -errno;
+			close(lexer->fd);
+			lexer->fd = -1;
+			goto gtfo;
+		} else {
+			lexer->buffer.offset = 0;
+			lexer->buffer.len = err;
+		}
 	}
 
-	err = read(lexer->fd, &c, sizeof(c));
-
-	if (err < 0) {
-		err = -errno;
-		close(lexer->fd);
-		lexer->fd = -1;
-	} else if (err > 0) {
+	if (lexer->buffer.len > 0) {
+		*dst = (char)lexer->buffer.data[lexer->buffer.offset++];
 		lexer->col++;
+		err = 1;
 
-		if (c == '\n') {
+		if (*dst == '\n') {
 			lexer->line++;
 			lexer->col = 1;
 		}
-
-		*dst = c;
-		err = 0;
 	} else {
 		*dst = 0;
+		err = 0;
 	}
 
+gtfo:
 	return err;
 }
 
@@ -229,21 +245,11 @@ static int _lexer_backstep(lexer_t *lexer)
 		return -EINVAL;
 	}
 
-	if (lexer->fd < 0) {
+	if (lexer->buffer.offset <= 0) {
 		return -EBADFD;
 	}
 
-	if (lseek(lexer->fd, -1, SEEK_CUR) < 0) {
-		/*
-		 * This lexer doesn't work if we cannot revert to the
-		 * previous position. No need to fail gracefully.
-		 */
-		close(lexer->fd);
-		lexer->fd = -1;
-
-		return -errno;
-	}
-
+	lexer->buffer.offset--;
 	return 0;
 }
 
