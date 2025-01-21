@@ -555,3 +555,66 @@ int char_from_utf8(const char *src, const size_t src_len, char_t **dst)
 
 	return err;
 }
+
+char_t char_combine(const char_t left, const char_t right)
+{
+	if (right == CHAR_JA_DAKUTEN) {
+		switch (left) {
+		case CHAR_JA_WA:
+			return CHAR_JA_VA;
+		case CHAR_JA_WI:
+			return CHAR_JA_VI;
+		case CHAR_JA_U:
+			return CHAR_JA_VU;
+		case CHAR_JA_WE:
+			return CHAR_JA_VE;
+		case CHAR_JA_WO:
+			return CHAR_JA_VO;
+
+		case CHAR_JA_KA:
+		case CHAR_JA_KI:
+		case CHAR_JA_KU:
+		case CHAR_JA_KE:
+		case CHAR_JA_KO:
+			return left - CHAR_JA_KA + CHAR_JA_GA;
+
+		case CHAR_JA_TA:
+		case CHAR_JA_TI:
+		case CHAR_JA_TU:
+		case CHAR_JA_TE:
+		case CHAR_JA_TO:
+			return left - CHAR_JA_TA + CHAR_JA_DA;
+
+		case CHAR_JA_SA:
+		case CHAR_JA_SI:
+		case CHAR_JA_SU:
+		case CHAR_JA_SE:
+		case CHAR_JA_SO:
+			return left - CHAR_JA_SA + CHAR_JA_ZA;
+
+		case CHAR_JA_HA:
+		case CHAR_JA_HI:
+		case CHAR_JA_HU:
+		case CHAR_JA_HE:
+		case CHAR_JA_HO:
+			return left - CHAR_JA_HA + CHAR_JA_BA;
+
+		default:
+			break;
+		}
+	} else if (right == CHAR_JA_HANDAKUTEN) {
+		switch (left) {
+		case CHAR_JA_HA:
+		case CHAR_JA_HI:
+		case CHAR_JA_HU:
+		case CHAR_JA_HE:
+		case CHAR_JA_HO:
+			return left - CHAR_JA_HA + CHAR_JA_PA;
+
+		default:
+			break;
+		}
+	}
+
+	return CHAR_INVALID;
+}

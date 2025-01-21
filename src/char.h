@@ -272,5 +272,6 @@ typedef enum {
 int char_to_utf8(const char_t *src, const size_t src_len, char *dst, const size_t dst_size);
 int char_to_utf8_dyn(const char_t *src, const size_t src_len, char **dst);
 int char_from_utf8(const char *src, const size_t src_len, char_t **dst);
+char_t char_combine(const char_t left, const char_t right);
 
 #endif /* MXIM_CHAR_H */
