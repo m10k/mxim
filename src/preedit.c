@@ -150,7 +150,7 @@ int preedit_insert(preedit_t *preedit, char_t character, preedit_dir_t cursor_di
 	err = segment_insert(preedit->segments[preedit->cursor.segment],
 	                     character, preedit->cursor.offset);
 
-	if (!err) {
+	if (err > 0) {
 		err = preedit_move(preedit, cursor_dir);
 	}
 
