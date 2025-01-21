@@ -130,13 +130,25 @@ int segment_insert(segment_t *segment, const char_t chr,
 		return err;
 	}
 
+	/* Try to combine with the previous character */
+	if (insert_pos > 0) {
+		char_t combined;
+
+		combined = char_combine(segment->input[insert_pos - 1], chr);
+
+		if (combined != CHAR_INVALID) {
+			segment->input[insert_pos - 1] = combined;
+			return 0;
+		}
+	}
+
 	tail_len = segment->len - insert_pos;
 	memmove(segment->input + insert_pos + 1,
 	        segment->input + insert_pos, tail_len);
 	segment->input[insert_pos] = chr;
 	segment->len++;
 
-	return 0;
+	return 1;
 }
 
 int segment_clear(segment_t *segment)
