@@ -480,6 +480,36 @@ static int xim_client_sync(xim_client_t *client, const int im, const int ic, con
 	return xim_client_send(client, (xim_msg_t*)&sync);
 }
 
+static void handle_destroy_ic_msg(xim_client_t *client, xim_msg_destroy_ic_t *msg)
+{
+	xim_msg_destroy_ic_reply_t reply;
+	input_method_t *im;
+	int err;
+
+	if (msg->im <= 0 || msg->im > CLIENT_IM_MAX || !(im = client->ims[msg->im - 1])) {
+		xim_client_send_error(client, msg->im, 0, XIM_ERROR_BAD_SOMETHING, "Invalid IM id");
+		return;
+	}
+
+	if (msg->ic <= 0 || msg->ic > CLIENT_IC_MAX || !client->ics[msg->ic - 1]) {
+		xim_client_send_error(client, msg->im, msg->ic, XIM_ERROR_BAD_SOMETHING, "Invalid IC id");
+		return;
+	}
+
+	if ((err = input_context_free(&client->ics[msg->ic - 1])) < 0) {
+		xim_client_send_error(client, msg->im, msg->ic, XIM_ERROR_BAD_SOMETHING,
+		                      "Could not destroy IC: %s", strerror(-err));
+		return;
+	}
+
+	reply.hdr.type = XIM_DESTROY_IC_REPLY;
+	reply.hdr.subtype = 0;
+	reply.im = msg->im;
+	reply.ic = msg->ic;
+
+	xim_client_send(client, (xim_msg_t*)&reply);
+}
+
 static void handle_forward_event_msg(xim_client_t *client, xim_msg_forward_event_t *msg)
 {
 	input_method_t *im;
@@ -595,6 +625,11 @@ static void _xim_client_handle_msg(xim_client_t *client, xim_msg_t *msg)
 	case XIM_FORWARD_EVENT:
 		fprintf(stderr, "XIM_FORWARD_EVENT\n");
 		handle_forward_event_msg(client, (xim_msg_forward_event_t*)msg);
+		break;
+
+	case XIM_DESTROY_IC:
+		fprintf(stderr, "XIM_DESTROY_IC\n");
+		handle_destroy_ic_msg(client, (xim_msg_destroy_ic_t*)msg);
 		break;
 
 	default:
