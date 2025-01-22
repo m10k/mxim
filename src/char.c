@@ -447,7 +447,7 @@ int char_to_utf8(const char_t *src, const size_t src_len, char *dst, const size_
 			break;
 		}
 
-		dst_offset += snprintf(dst + dst_offset, dst_size - dst_offset, utf8);
+		dst_offset += snprintf(dst + dst_offset, dst_size - dst_offset, "%s", utf8);
 	}
 
 	return (int)dst_offset;
@@ -469,7 +469,7 @@ static int _estimate_size(const char_t *src, const size_t src_len)
 			break;
 		}
 
-		size += snprintf(NULL, 0, utf8);
+		size += snprintf(NULL, 0, "%s", utf8);
 	}
 
 	return size;
