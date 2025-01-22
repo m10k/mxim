@@ -108,6 +108,8 @@ int input_context_free(input_context_t **ic)
 		attr_value_free(&(*ic)->attrs[i].value);
 	}
 
+	preedit_free(&(*ic)->preedit);
+
 	free(*ic);
 	*ic = NULL;
 	return 0;
