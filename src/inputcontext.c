@@ -233,6 +233,10 @@ int input_context_erase(input_context_t *ic, int dir)
 	cursor_dir.segment = 0;
 	cursor_dir.offset = dir;
 
+	if (preedit_is_empty(ic->preedit)) {
+		return -ERANGE;
+	}
+
 	err = preedit_erase(ic->preedit, cursor_dir);
 
 	if (!err) {
@@ -268,6 +272,10 @@ int input_context_cursor_move(input_context_t *ic, const int dir)
 
 	cursor_dir.segment = 0;
 	cursor_dir.offset = dir;
+
+	if (preedit_is_empty(ic->preedit)) {
+		return -ERANGE;
+	}
 
 	return preedit_move(ic->preedit, cursor_dir);
 }
