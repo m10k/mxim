@@ -57,5 +57,6 @@ int preedit_select_candidate(preedit_t *preedit, const unsigned int candidate);
 int preedit_move_segment(preedit_t *preedit, const int dir);
 int preedit_insert_segment(preedit_t *preedit);
 int preedit_update_candidates(preedit_t *preedit);
+int preedit_is_empty(const preedit_t *preedit);
 
 #endif /* PREEDIT_H */

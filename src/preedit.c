@@ -379,3 +379,12 @@ int preedit_update_candidates(preedit_t *preedit)
 
 	return segment_update_candidates(segment);
 }
+
+int preedit_is_empty(const preedit_t *preedit)
+{
+	if (!preedit) {
+		return -EINVAL;
+	}
+
+	return preedit->num_segments == 1 && preedit->segments[0]->len == 0;
+}
