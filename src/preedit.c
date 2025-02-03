@@ -75,13 +75,9 @@ int preedit_free(preedit_t **preedit)
 
 int preedit_move(preedit_t *preedit, preedit_dir_t cursor_dir)
 {
-	int err;
-
 	if (!preedit) {
 		return -EINVAL;
 	}
-
-	err = 0;
 
 	/* Assumption: The preedit always has at least one segment */
 
@@ -94,10 +90,8 @@ int preedit_move(preedit_t *preedit, preedit_dir_t cursor_dir)
 
 		if (preedit->cursor.segment < 0) {
 			preedit->cursor.segment = 0;
-			err = -ERANGE;
 		} else if (preedit->cursor.segment >= preedit->num_segments) {
 			preedit->cursor.segment = preedit->num_segments - 1;
-			err = -ERANGE;
 		}
 	}
 
@@ -113,14 +107,12 @@ int preedit_move(preedit_t *preedit, preedit_dir_t cursor_dir)
 
 		if (preedit->cursor.offset < 0) {
 			preedit->cursor.offset = 0;
-			err = -ERANGE;
 		} else if (preedit->cursor.offset > segm->len) {
 			preedit->cursor.offset = segm->len;
-			err = -ERANGE;
 		}
 	}
 
-	return err;
+	return 0;
 }
 
 int preedit_erase(preedit_t *preedit, preedit_dir_t cursor_dir)
