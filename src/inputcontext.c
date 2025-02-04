@@ -1,6 +1,6 @@
 /*
  * inputcontext.c - This file is part of mxim
- * Copyright (C) 2024 Matthias Kruk
+ * Copyright (C) 2024-2025 Matthias Kruk
  *
  * Mxim is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published
@@ -302,6 +302,10 @@ int input_context_move_segment(input_context_t *ic, const int dir)
 {
 	if (!ic) {
 		return -EINVAL;
+	}
+
+	if (preedit_is_empty(ic->preedit)) {
+		return -ERANGE;
 	}
 
 	return preedit_move_segment(ic->preedit, dir);
