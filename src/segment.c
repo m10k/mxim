@@ -365,6 +365,10 @@ int segment_move_candidate(segment_t *segment, const int dir)
 		return -EINVAL;
 	}
 
+	if (segment->num_candidates == 0) {
+		return -ENOENT;
+	}
+
 	segment->selection = (segment->selection + dir) % segment->num_candidates;
 
 	while (segment->selection < 0) {
