@@ -1,0 +1,15 @@
+Source: mxim
+Priority: optional
+Maintainer: Matthias Kruk <m@m10k.eu>
+Build-Depends: debhelper (>= 9), make, coreutils, gcc, libx11-dev
+Standards-Version: 3.9.8
+Section: x11
+Homepage: https://github.com/m10k/mxim
+
+Package: mxim
+Section: x11
+Architecture: any
+Depends: libc6, mwm, libx11-6, ${shlibs:Depends}
+Description: X Input Method server for Japanese and Korean
+ Mxim is an X Input Method server optimized for input of Japanese
+ and Korean.
