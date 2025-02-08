@@ -182,7 +182,7 @@ int input_method_handle_key(input_method_t *im, input_context_t *ic, keysym_t *k
 
 	if (im->cmds[binding->cmd]) {
 		err = im->cmds[binding->cmd](im, ic, &binding->arg);
-	} else {
+	} else if (im->active) {
 		assert(input_context_get_language(ic, &ic_lang) == 0);
 
 		if (config_keysym_to_char(&chr, ks, ic_lang) < 0) {
@@ -194,6 +194,9 @@ int input_method_handle_key(input_method_t *im, input_context_t *ic, keysym_t *k
 		} else {
 			err = input_context_insert(ic, chr);
 		}
+	} else {
+		/* IM is not active -> return event to sender */
+		err = -1;
 	}
 
 	if (!err) {

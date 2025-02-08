@@ -42,6 +42,7 @@ static int _jkim_candidate_select(input_method_t *im, input_context_t *ic, cmd_a
 static int _jkim_segment_move(input_method_t *im, input_context_t *ic, cmd_arg_t *arg);
 static int _jkim_segment_resize(input_method_t *im, input_context_t *ic, cmd_arg_t *arg);
 static int _jkim_segment_new(input_method_t *im, input_context_t *ic, cmd_arg_t *arg);
+static int _jkim_toggle_onoff(input_method_t *im, input_context_t *ic, cmd_arg_t *arg);
 
 static const attr_t _im_attr_inputstyle = {
 	.id = 1,
@@ -146,7 +147,9 @@ input_method_t _jkim = {
 		[CMD_SEGMENT_MOVE]     = (cmd_func_t*)_jkim_segment_move,
 		[CMD_SEGMENT_RESIZE]   = (cmd_func_t*)_jkim_segment_resize,
 		[CMD_SEGMENT_NEW]      = (cmd_func_t*)_jkim_segment_new,
+		[CMD_ONOFF]            = (cmd_func_t*)_jkim_toggle_onoff,
 	},
+	.active = 1,
 
 	/* no extensions */
 	.exts = NULL,
@@ -162,6 +165,10 @@ static int _jkim_lang_switch(input_method_t *im, input_context_t *ic, cmd_arg_t 
 		[LANG_KR] = "LANG_KR",
 	};
 
+	if (!im->active) {
+		return -EAGAIN;
+	}
+
 	lang = (lang_t)arg->u;
 	fprintf(stderr, "Switching context %p to %s\n", (void*)ic, _langs[lang]);
 	return input_context_set_language(ic, lang);
@@ -169,40 +176,78 @@ static int _jkim_lang_switch(input_method_t *im, input_context_t *ic, cmd_arg_t 
 
 static int _jkim_cursor_move(input_method_t *im, input_context_t *ic, cmd_arg_t *arg)
 {
+	if (!im->active) {
+		return -EAGAIN;
+	}
+
 	return input_context_cursor_move(ic, arg->i);
 }
 
 static int _jkim_delete(input_method_t *im, input_context_t *ic, cmd_arg_t *arg)
 {
+	if (!im->active) {
+		return -EAGAIN;
+	}
+
 	return input_context_erase(ic, arg->i);
 }
 
 static int _jkim_commit(input_method_t *im, input_context_t *ic, cmd_arg_t *arg)
 {
+	if (!im->active) {
+		return -EAGAIN;
+	}
+
 	return input_context_commit(ic);
 }
 
 static int _jkim_candidate_move(input_method_t *im, input_context_t *ic, cmd_arg_t *arg)
 {
+	if (!im->active) {
+		return -EAGAIN;
+	}
+
 	return input_context_move_candidate(ic, arg->i);
 }
 
 static int _jkim_candidate_select(input_method_t *im, input_context_t *ic, cmd_arg_t *arg)
 {
+	if (!im->active) {
+		return -EAGAIN;
+	}
+
 	return input_context_select_candidate(ic, arg->u);
 }
 
 static int _jkim_segment_move(input_method_t *im, input_context_t *ic, cmd_arg_t *arg)
 {
+	if (!im->active) {
+		return -EAGAIN;
+	}
+
 	return input_context_move_segment(ic, arg->i);
 }
 
 static int _jkim_segment_resize(input_method_t *im, input_context_t *ic, cmd_arg_t *arg)
 {
+	if (!im->active) {
+		return -EAGAIN;
+	}
+
 	return -ENOSYS;
 }
 
 static int _jkim_segment_new(input_method_t *im, input_context_t *ic, cmd_arg_t *arg)
 {
+	if (!im->active) {
+		return -EAGAIN;
+	}
+
 	return input_context_insert_segment(ic);
+}
+
+static int _jkim_toggle_onoff(input_method_t *im, input_context_t *ic, cmd_arg_t *arg)
+{
+	im->active = !im->active;
+	return 0;
 }

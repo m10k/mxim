@@ -60,6 +60,7 @@ struct input_method {
 	const char **encodings;
 
 	cmd_func_t *cmds[CMD_LAST];
+	unsigned active;
 
 	/* Event handler called after an Input Context has been created */
 	int (*ic_created)(input_method_t*, input_context_t*);

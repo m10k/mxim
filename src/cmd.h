@@ -1,6 +1,6 @@
 /*
  * cmd.h - This file is part of mxim
- * Copyright (C) 2024 Matthias Kruk
+ * Copyright (C) 2024-2025 Matthias Kruk
  *
  * Mxim is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published
@@ -33,6 +33,7 @@ typedef enum {
 	CMD_SEGMENT_NEW,      /* none          */
 	CMD_DELETE,           /* int      dir  */
 	CMD_COMMIT,           /* none          */
+	CMD_ONOFF,
 	CMD_LAST
 } cmd_t;
 
