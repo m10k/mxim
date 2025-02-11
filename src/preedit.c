@@ -131,12 +131,44 @@ int preedit_erase(preedit_t *preedit, preedit_dir_t cursor_dir)
 	                     preedit->cursor.offset);
 }
 
+static int _insert_segment_if_needed(preedit_t *preedit, const char_t next_char)
+{
+	short prev_idx;
+	char_t prev_char;
+	int err;
+
+	if (preedit->cursor.offset < 1) {
+		/* There is no previous character. Nothing to do. */
+		return 0;
+	}
+
+	err = 0;
+	prev_idx = preedit->cursor.offset - 1;
+	prev_char = preedit->segments[preedit->cursor.segment]->input[prev_idx];
+
+	if (!char_same_set(prev_char, next_char)) {
+		err = preedit_insert_segment(preedit);
+
+		if (!err) {
+			preedit->cursor.segment++;
+			preedit->cursor.offset = 0;
+		}
+	}
+
+	return err;
+}
+
 int preedit_insert(preedit_t *preedit, char_t character, preedit_dir_t cursor_dir)
 {
 	int err;
 
 	if (!preedit) {
 		return -EINVAL;
+	}
+
+	/* determine if the character should be inserted into a new segment */
+	if ((err = _insert_segment_if_needed(preedit, character)) < 0) {
+		return err;
 	}
 
 	err = segment_insert(preedit->segments[preedit->cursor.segment],
