@@ -618,3 +618,47 @@ char_t char_combine(const char_t left, const char_t right)
 
 	return CHAR_INVALID;
 }
+
+typedef enum {
+	CHARSET_SYMBOL,
+	CHARSET_DIGIT,
+	CHARSET_ROMAN,
+	CHARSET_JAPANESE,
+	CHARSET_JAPANESE_SYMBOL,
+	CHARSET_KOREAN,
+	CHARSET_OTHER
+} _char_set_t;
+
+static int _char_get_set(const char_t chr)
+{
+	int set;
+
+	if (chr < CHAR_0) {
+		set = CHARSET_SYMBOL;
+	} else if (chr < CHAR_A) {
+		set = CHARSET_DIGIT;
+	} else if (chr < CHAR_JA_A) {
+		set = CHARSET_ROMAN;
+	} else if (chr < CHAR_JA_LQUOTE) {
+		set = CHARSET_JAPANESE;
+	} else if (chr < CHAR_KR_BB) {
+		set = CHARSET_JAPANESE_SYMBOL;
+	} else if (chr <= CHAR_KR_EU) {
+		set = CHARSET_KOREAN;
+	} else {
+		set = CHARSET_OTHER;
+	}
+
+	return set;
+}
+
+int char_same_set(const char_t left, const char_t right)
+{
+	_char_set_t left_set;
+	_char_set_t right_set;
+
+	left_set = _char_get_set(left);
+	right_set = _char_get_set(right);
+
+	return left_set == right_set;
+}
