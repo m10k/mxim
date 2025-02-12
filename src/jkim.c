@@ -180,7 +180,7 @@ static int _jkim_cursor_move(input_method_t *im, input_context_t *ic, cmd_arg_t 
 		return -EAGAIN;
 	}
 
-	return input_context_cursor_move(ic, arg->i);
+	return input_context_cursor_move(ic, arg->s[0], arg->s[1]);
 }
 
 static int _jkim_delete(input_method_t *im, input_context_t *ic, cmd_arg_t *arg)
