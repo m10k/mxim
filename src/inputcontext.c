@@ -266,12 +266,12 @@ int input_context_get_language(input_context_t *ic, lang_t *lang)
 	return 0;
 }
 
-int input_context_cursor_move(input_context_t *ic, const int dir)
+int input_context_cursor_move(input_context_t *ic, const short segment, const short offset)
 {
 	preedit_dir_t cursor_dir;
 
-	cursor_dir.segment = 0;
-	cursor_dir.offset = dir;
+	cursor_dir.segment = segment;
+	cursor_dir.offset = offset;
 
 	if (preedit_is_empty(ic->preedit)) {
 		return -ERANGE;

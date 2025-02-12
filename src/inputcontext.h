@@ -1,6 +1,6 @@
 /*
  * inputmethod.h - This file is part of mxim
- * Copyright (C) 2024 Matthias Kruk
+ * Copyright (C) 2024-2025 Matthias Kruk
  *
  * Mxim is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published
@@ -46,7 +46,7 @@ int input_context_erase(input_context_t *ic, int dir);
 int input_context_set_language(input_context_t *ic, const lang_t language);
 int input_context_get_language(input_context_t *ic, lang_t *language);
 
-int input_context_cursor_move(input_context_t *ic, const int dir);
+int input_context_cursor_move(input_context_t *ic, const short segment, const short offset);
 
 int input_context_move_candidate(input_context_t *ic, const int dir);
 int input_context_select_candidate(input_context_t *ic, const unsigned int candidate);
