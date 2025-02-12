@@ -100,15 +100,28 @@ int preedit_move(preedit_t *preedit, preedit_dir_t cursor_dir)
 	} else if (cursor_dir.offset == PREEDIT_SEGMENT_END) {
 		preedit->cursor.offset = preedit->segments[preedit->cursor.segment]->len;
 	} else {
-		segment_t *segm;
-
-		segm = preedit->segments[preedit->cursor.segment];
 		preedit->cursor.offset += cursor_dir.offset;
 
-		if (preedit->cursor.offset < 0) {
-			preedit->cursor.offset = 0;
-		} else if (preedit->cursor.offset > segm->len) {
-			preedit->cursor.offset = segm->len;
+		while (preedit->cursor.offset > preedit->segments[preedit->cursor.segment]->len) {
+			preedit->cursor.offset -= preedit->segments[preedit->cursor.segment]->len;
+			preedit->cursor.segment++;
+
+			if (preedit->cursor.segment >= preedit->num_segments) {
+				preedit->cursor.segment = preedit->num_segments - 1;
+				preedit->cursor.offset = preedit->segments[preedit->cursor.segment]->len;
+			}
+
+		}
+
+		while (preedit->cursor.offset < 0) {
+			preedit->cursor.segment--;
+
+			if (preedit->cursor.segment < 0) {
+				preedit->cursor.segment = 0;
+				preedit->cursor.offset = 0;
+			} else {
+				preedit->cursor.offset += preedit->segments[preedit->cursor.segment]->len;
+			}
 		}
 	}
 
