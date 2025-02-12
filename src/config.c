@@ -62,6 +62,12 @@ cmd_def_t config_keybindings[255][16] = {
 		[MOD_CTRL | MOD_SHIFT] = { .cmd = CMD_SEGMENT_RESIZE, .arg = { .i = +1 } },
 		[MOD_SUPER]            = { .cmd = CMD_CANDIDATE_MOVE, .arg = { .i = +1 } },
 	},
+	[KEY_HOME] = {
+		[MOD_NONE] = { .cmd = CMD_CURSOR_MOVE, .arg = { .s = { PREEDIT_SEGMENT_FIRST, PREEDIT_SEGMENT_START } } },
+	},
+	[KEY_END] = {
+		[MOD_NONE] = { .cmd = CMD_CURSOR_MOVE, .arg = { .s = { PREEDIT_SEGMENT_LAST, PREEDIT_SEGMENT_END } } },
+	},
 	[KEY_RETURN] = {
 		[MOD_SUPER] = { .cmd = CMD_COMMIT },
 	},
