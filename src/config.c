@@ -52,13 +52,13 @@ cmd_def_t config_keybindings[255][16] = {
 	},
 	[KEY_LEFT] = {
 		[MOD_NONE]             = { .cmd = CMD_CURSOR_MOVE,    .arg = { .s = { 0, -1 } } },
-		[MOD_CTRL]             = { .cmd = CMD_SEGMENT_MOVE,   .arg = { .i = -1 } },
+		[MOD_CTRL]             = { .cmd = CMD_CURSOR_MOVE,    .arg = { .s = { -1, 0 } } },
 		[MOD_CTRL | MOD_SHIFT] = { .cmd = CMD_SEGMENT_RESIZE, .arg = { .i = -1 } },
 		[MOD_SUPER]            = { .cmd = CMD_CANDIDATE_MOVE, .arg = { .i = -1 } },
 	},
 	[KEY_RIGHT] = {
 		[MOD_NONE]             = { .cmd = CMD_CURSOR_MOVE,    .arg = { .s = { 0, +1 } } },
-		[MOD_CTRL]             = { .cmd = CMD_SEGMENT_MOVE,   .arg = { .i = +1 } },
+		[MOD_CTRL]             = { .cmd = CMD_CURSOR_MOVE,    .arg = { .s = { +1, 0 } } },
 		[MOD_CTRL | MOD_SHIFT] = { .cmd = CMD_SEGMENT_RESIZE, .arg = { .i = +1 } },
 		[MOD_SUPER]            = { .cmd = CMD_CANDIDATE_MOVE, .arg = { .i = +1 } },
 	},
