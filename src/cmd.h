@@ -41,6 +41,7 @@ typedef union {
 	void *p;
 	int i;
 	unsigned u;
+	short s[2];
 } cmd_arg_t;
 
 typedef struct {
