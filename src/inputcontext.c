@@ -356,6 +356,10 @@ int input_context_commit(input_context_t *ic)
 		return utf8_len;
 	}
 
+	if (utf8_len == 0) {
+		return -EAGAIN;
+	}
+
 	if ((err = xim_client_commit(ic->client, ic->im, ic->ic, utf8, utf8_len)) < 0) {
 		return err;
 	}
