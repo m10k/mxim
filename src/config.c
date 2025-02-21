@@ -69,7 +69,7 @@ cmd_def_t config_keybindings[255][16] = {
 		[MOD_NONE] = { .cmd = CMD_CURSOR_MOVE, .arg = { .s = { PREEDIT_SEGMENT_LAST, PREEDIT_SEGMENT_END } } },
 	},
 	[KEY_RETURN] = {
-		[MOD_SUPER] = { .cmd = CMD_COMMIT },
+		[MOD_NONE] = { .cmd = CMD_COMMIT },
 	},
 	[KEY_TAB] = {
 		[MOD_CTRL] =  { .cmd = CMD_SEGMENT_NEW,      .arg = { .i = 0 } },
