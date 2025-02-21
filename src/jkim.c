@@ -144,7 +144,6 @@ input_method_t _jkim = {
 		[CMD_CURSOR_MOVE]      = (cmd_func_t*)_jkim_cursor_move,
 		[CMD_CANDIDATE_MOVE]   = (cmd_func_t*)_jkim_candidate_move,
 		[CMD_CANDIDATE_SELECT] = (cmd_func_t*)_jkim_candidate_select,
-		[CMD_SEGMENT_MOVE]     = (cmd_func_t*)_jkim_segment_move,
 		[CMD_SEGMENT_RESIZE]   = (cmd_func_t*)_jkim_segment_resize,
 		[CMD_SEGMENT_NEW]      = (cmd_func_t*)_jkim_segment_new,
 		[CMD_ONOFF]            = (cmd_func_t*)_jkim_toggle_onoff,
@@ -217,15 +216,6 @@ static int _jkim_candidate_select(input_method_t *im, input_context_t *ic, cmd_a
 	}
 
 	return input_context_select_candidate(ic, arg->u);
-}
-
-static int _jkim_segment_move(input_method_t *im, input_context_t *ic, cmd_arg_t *arg)
-{
-	if (!im->active) {
-		return -EAGAIN;
-	}
-
-	return input_context_move_segment(ic, arg->i);
 }
 
 static int _jkim_segment_resize(input_method_t *im, input_context_t *ic, cmd_arg_t *arg)

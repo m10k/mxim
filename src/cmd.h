@@ -28,7 +28,6 @@ typedef enum {
 	CMD_CURSOR_MOVE,      /* int      dir  */
 	CMD_CANDIDATE_MOVE,   /* int      dir  */
 	CMD_CANDIDATE_SELECT, /* unsigned idx  */
-	CMD_SEGMENT_MOVE,     /* int      dir  */
 	CMD_SEGMENT_RESIZE,   /* int      size */
 	CMD_SEGMENT_NEW,      /* none          */
 	CMD_DELETE,           /* int      dir  */
