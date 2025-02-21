@@ -93,6 +93,17 @@ int preedit_move(preedit_t *preedit, preedit_dir_t cursor_dir)
 		} else if (preedit->cursor.segment >= preedit->num_segments) {
 			preedit->cursor.segment = preedit->num_segments - 1;
 		}
+
+		/*
+		 * If we're moving to a segment on the right, move the cursor to
+		 * the start of the segment. If we're moving to a segment on the
+		 * left, move the cursor to the end of the segment.
+		 */
+		if (cursor_dir.segment > 0) {
+			preedit->cursor.offset = 0;
+		} else if (cursor_dir.segment < 0) {
+			preedit->cursor.offset = preedit->segments[preedit->cursor.segment]->len;
+		}
 	}
 
 	if (cursor_dir.offset == PREEDIT_SEGMENT_START) {
