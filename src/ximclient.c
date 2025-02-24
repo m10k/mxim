@@ -242,6 +242,26 @@ static void handle_open_msg(xim_client_t *client, xim_msg_open_t *msg)
 	return;
 }
 
+static void handle_close_msg(xim_client_t *client, xim_msg_close_t *msg)
+{
+	xim_msg_close_reply_t reply;
+
+	if (msg->im == 0 || msg->im >= (sizeof(client->ims) / sizeof(client->ims[0])) ||
+	    !client->ims[msg->im - 1]) {
+		xim_client_send_error(client, msg->im, 0, XIM_ERROR_BAD_SOMETHING,
+		                      "Invalid IM id\n");
+		return;
+	}
+
+	client->ims[msg->im - 1] = NULL;
+	reply.hdr.type = XIM_CLOSE_REPLY;
+	reply.hdr.subtype = 0;
+	reply.im = msg->im;
+
+	xim_client_send(client, (xim_msg_t*)&reply);
+	return;
+}
+
 static void handle_query_extension_msg(xim_client_t *client, xim_msg_query_extension_t *msg)
 {
 	xim_msg_query_extension_reply_t reply;
@@ -580,6 +600,14 @@ static void _xim_client_handle_msg(xim_client_t *client, xim_msg_t *msg)
 		handle_open_msg(client, (xim_msg_open_t*)msg);
 		break;
 
+	case XIM_CLOSE:
+		fprintf(stderr,
+		        "XIM_CLOSE received\n"
+		        " -> IM = %d\n",
+		        ((xim_msg_close_t*)msg)->im);
+		handle_close_msg(client, (xim_msg_close_t*)msg);
+		break;
+
 	case XIM_QUERY_EXTENSION:
 		fprintf(stderr, "XIM_QUERY_EXTENSION received\n");
 		if (((xim_msg_query_extension_t*)msg)->exts) {
@@ -615,7 +643,6 @@ static void _xim_client_handle_msg(xim_client_t *client, xim_msg_t *msg)
 		fprintf(stderr, "XIM_CREATE_IC\n");
 		handle_create_ic_msg(client, (xim_msg_create_ic_t*)msg);
 		break;
-
 
 	case XIM_GET_IC_VALUES:
 		fprintf(stderr, "XIM_GET_IC_VALUES\n");
