@@ -223,7 +223,10 @@ int segment_get_input_decorated(segment_t *segment, const int selected, const in
 		}
 	} else {
 		if (string_new(&escape) < 0 ||
-		    (err = string_append_char(escape, segment->input, segment->len)) < 0 ||
+		    (err = (segment->candidates && segment->selection >= 0) ?
+		     string_append_utf8(escape, segment->candidates[segment->selection]->value,
+		                        strlen(segment->candidates[segment->selection]->value)) :
+		     string_append_char(escape, segment->input, segment->len)) < 0 ||
 		    (err = string_replace(escape, "&", "&amp;")) < 0 ||
 		    (err = string_replace(escape, "<", "&lt;")) < 0 ||
 		    (err = string_replace(escape, ">", "&gt;")) < 0 ||
