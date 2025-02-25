@@ -157,6 +157,8 @@ int preedit_erase(preedit_t *preedit, preedit_dir_t cursor_dir)
 
 static int _insert_segment_if_needed(preedit_t *preedit, const char_t next_char)
 {
+	segment_t *cur_segment;
+	int need_segment;
 	short prev_idx;
 	char_t prev_char;
 	int err;
@@ -167,10 +169,21 @@ static int _insert_segment_if_needed(preedit_t *preedit, const char_t next_char)
 	}
 
 	err = 0;
+	need_segment = 0;
+	cur_segment = preedit->segments[preedit->cursor.segment];
 	prev_idx = preedit->cursor.offset - 1;
-	prev_char = preedit->segments[preedit->cursor.segment]->input[prev_idx];
+	prev_char = cur_segment->input[prev_idx];
 
-	if (!char_same_set(prev_char, next_char)) {
+	if ((cur_segment->candidates && cur_segment->selection >= 0) &&
+	    preedit->cursor.offset == cur_segment->len) {
+		/* cursor is at the end of a segment with a selection */
+		need_segment = 1;
+	} else if (!char_same_set(prev_char, next_char)) {
+		/* we're at a character set boundary */
+		need_segment = 1;
+	}
+
+	if (need_segment) {
 		err = preedit_insert_segment(preedit);
 
 		if (!err) {
