@@ -20,6 +20,7 @@
 
 #define _POSIX_C_SOURCE 200809L
 #include "char.h"
+#include "hangul.h"
 #include <errno.h>
 #include <limits.h>
 #include <stdint.h>
@@ -440,14 +441,35 @@ int char_to_utf8(const char_t *src, const size_t src_len, char *dst, const size_
 		dst[0] = 0;
 	}
 
-	for (src_idx = dst_offset = 0; src_idx < src_len; src_idx++) {
+	for (src_idx = dst_offset = 0; src_idx < src_len;) {
 		const char *utf8;
+
+		if (char_same_set(src[src_idx], CHAR_KR_BB)) {
+			int hangul_len;
+
+			hangul_len = hangul_to_utf8(src + src_idx, src_len - src_idx,
+			                            dst + dst_offset, dst_size - dst_offset);
+
+			if (hangul_len > 0) {
+				src_idx += hangul_len;
+				dst_offset += 3; /* hangul are always 3 bytes in UTF-8 */
+
+				if (dst_size - dst_offset > 0) {
+					dst[dst_offset] = 0;
+				}
+
+				continue;
+			}
+
+			/* Fallthru to naive conversion if hangul conversion failed */
+		}
 
 		if (!(utf8 = _charmap[src[src_idx]])) {
 			break;
 		}
 
 		dst_offset += snprintf(dst + dst_offset, dst_size - dst_offset, "%s", utf8);
+		src_idx++;
 	}
 
 	return (int)dst_offset;
