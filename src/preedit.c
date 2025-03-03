@@ -22,6 +22,7 @@
 #include "segment.h"
 #include <errno.h>
 #include <stdlib.h>
+#include <string.h>
 
 struct preedit {
         segment_t **segments;
@@ -139,6 +140,45 @@ int preedit_move(preedit_t *preedit, preedit_dir_t cursor_dir)
 	return 0;
 }
 
+int preedit_remove_segment(preedit_t *preedit, const int segm)
+{
+	if (!preedit) {
+		return -EINVAL;
+	}
+
+	if (segm < 0 || segm > preedit->num_segments) {
+		return -ERANGE;
+	}
+
+	if (segment_free(&preedit->segments[segm]) < 0) {
+		return -EBADFD;
+	}
+
+	/* shift segment pointers, including trailing NULL pointer */
+	memmove(preedit->segments + segm, preedit->segments + segm + 1,
+	        sizeof(*preedit->segments) * (preedit->num_segments - segm));
+	preedit->num_segments--;
+
+	/* Adjust cursor if it was pointing to a segment that was shifted */
+	if (preedit->cursor.segment > segm) {
+		preedit->cursor.segment--;
+	} else if (preedit->cursor.segment == segm) {
+		/*
+		 * If the cursor was in the removed segment, it is now in the next
+		 * segment. Move the pointer to the start of the segment.
+		 */
+		preedit->cursor.offset = 0;
+
+		/* If there is no next segment, go to the end of the last one */
+		if (preedit->cursor.segment >= preedit->num_segments) {
+			preedit->cursor.segment = preedit->num_segments - 1;
+			preedit->cursor.offset = preedit->segments[preedit->cursor.segment]->len;
+		}
+	}
+
+	return 0;
+}
+
 int preedit_erase(preedit_t *preedit, preedit_dir_t cursor_dir)
 {
 	int err;
@@ -151,8 +191,20 @@ int preedit_erase(preedit_t *preedit, preedit_dir_t cursor_dir)
 		return err;
 	}
 
-	return segment_erase(preedit->segments[preedit->cursor.segment],
-	                     preedit->cursor.offset);
+	if ((err = segment_erase(preedit->segments[preedit->cursor.segment],
+	                         preedit->cursor.offset)) < 0) {
+		return err;
+	}
+
+	/* If the segment is now empty and it is not the last one, remove it */
+	if (preedit->segments[preedit->cursor.segment]->len == 0 &&
+	    preedit->num_segments > 1) {
+		err = preedit_remove_segment(preedit, preedit->cursor.segment);
+	} else {
+		err = 0;
+	}
+
+	return err;
 }
 
 static int _insert_segment_if_needed(preedit_t *preedit, const char_t next_char)
