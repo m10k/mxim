@@ -317,7 +317,7 @@ int hangul_to_utf8(const char_t *src, const size_t src_len,
 			break;
 
 		case MODE_Z_G:
-			if (src[i] >= ASIZE(zmap_g)) {
+			if (src[i] >= ASIZE(zmap_g) || !zmap_g[src[i]]) {
 				i--;
 			} else {
 				z += zmap_g[src[i]];
@@ -326,7 +326,7 @@ int hangul_to_utf8(const char_t *src, const size_t src_len,
 			break;
 
 		case MODE_Z_N:
-			if (src[i] >= ASIZE(zmap_n)) {
+			if (src[i] >= ASIZE(zmap_n) || !zmap_n[src[i]]) {
 				i--;
 			} else {
 				z += zmap_n[src[i]];
@@ -335,7 +335,7 @@ int hangul_to_utf8(const char_t *src, const size_t src_len,
 			break;
 
 		case MODE_Z_R:
-			if (src[i] >= ASIZE(zmap_r)) {
+			if (src[i] >= ASIZE(zmap_r) || !zmap_r[src[i]]) {
 				i--;
 			} else {
 				z += zmap_r[src[i]];
@@ -344,7 +344,7 @@ int hangul_to_utf8(const char_t *src, const size_t src_len,
 			break;
 
 		case MODE_Z_B:
-			if (src[i] >= ASIZE(zmap_b)) {
+			if (src[i] >= ASIZE(zmap_b) || !zmap_b[src[i]]) {
 				i--;
 			} else {
 				z += zmap_b[src[i]];
