@@ -39,7 +39,6 @@ static int _jkim_lang_switch(input_method_t *im, input_context_t *ic, cmd_arg_t 
 static int _jkim_cursor_move(input_method_t *im, input_context_t *ic, cmd_arg_t *arg);
 static int _jkim_candidate_move(input_method_t *im, input_context_t *ic, cmd_arg_t *arg);
 static int _jkim_candidate_select(input_method_t *im, input_context_t *ic, cmd_arg_t *arg);
-static int _jkim_segment_move(input_method_t *im, input_context_t *ic, cmd_arg_t *arg);
 static int _jkim_segment_resize(input_method_t *im, input_context_t *ic, cmd_arg_t *arg);
 static int _jkim_segment_new(input_method_t *im, input_context_t *ic, cmd_arg_t *arg);
 static int _jkim_toggle_onoff(input_method_t *im, input_context_t *ic, cmd_arg_t *arg);
