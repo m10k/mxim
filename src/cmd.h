@@ -32,6 +32,7 @@ typedef enum {
 	CMD_SEGMENT_NEW,      /* none          */
 	CMD_DELETE,           /* int      dir  */
 	CMD_COMMIT,           /* none          */
+	CMD_CLEAR,
 	CMD_ONOFF,
 	CMD_LAST
 } cmd_t;
