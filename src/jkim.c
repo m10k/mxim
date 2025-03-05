@@ -34,6 +34,7 @@ struct XIMSTYLES {
 } __attribute__((packed));
 
 static int _jkim_commit(input_method_t *im, input_context_t *ic, cmd_arg_t *arg);
+static int _jkim_clear(input_method_t *im, input_context_t *ic, cmd_arg_t *arg);
 static int _jkim_delete(input_method_t *im, input_context_t *ic, cmd_arg_t *arg);
 static int _jkim_lang_switch(input_method_t *im, input_context_t *ic, cmd_arg_t *arg);
 static int _jkim_cursor_move(input_method_t *im, input_context_t *ic, cmd_arg_t *arg);
@@ -138,6 +139,7 @@ input_method_t _jkim = {
 
 	.cmds = {
 		[CMD_COMMIT]           = (cmd_func_t*)_jkim_commit,
+		[CMD_CLEAR]            = (cmd_func_t*)_jkim_clear,
 		[CMD_DELETE]           = (cmd_func_t*)_jkim_delete,
 		[CMD_LANG_SELECT]      = (cmd_func_t*)_jkim_lang_switch,
 		[CMD_CURSOR_MOVE]      = (cmd_func_t*)_jkim_cursor_move,
@@ -197,6 +199,15 @@ static int _jkim_commit(input_method_t *im, input_context_t *ic, cmd_arg_t *arg)
 	}
 
 	return input_context_commit(ic);
+}
+
+static int _jkim_clear(input_method_t *im, input_context_t *ic, cmd_arg_t *arg)
+{
+	if (!im->active) {
+		return -EAGAIN;
+	}
+
+	return input_context_clear(ic);
 }
 
 static int _jkim_candidate_move(input_method_t *im, input_context_t *ic, cmd_arg_t *arg)
