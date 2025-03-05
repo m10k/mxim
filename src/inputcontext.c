@@ -366,3 +366,12 @@ int input_context_commit(input_context_t *ic)
 
 	return preedit_clear(ic->preedit);
 }
+
+int input_context_clear(input_context_t *ic)
+{
+	if (!ic) {
+		return -EINVAL;
+	}
+
+	return preedit_clear(ic->preedit);
+}
