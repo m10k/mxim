@@ -108,6 +108,9 @@ cmd_def_t config_keybindings[255][16] = {
 	[KEY_9] = {
 		[MOD_SUPER] = { .cmd = CMD_CANDIDATE_SELECT, .arg = { .u = 9 } },
 	},
+	[KEY_C] = {
+		[MOD_SUPER] = { .cmd = CMD_CLEAR },
+	},
 	[KEY_ZENKAKU] =
 	{
 		[MOD_SUPER] = { .cmd = CMD_ONOFF,            .arg = { .i = -1 } },
