@@ -516,6 +516,20 @@ static int decode_XIM_CONNECT(xim_msg_t **dst, const struct XIM_CONNECT *src, co
 	return skip + sizeof(*src);
 }
 
+static int decode_XIM_DISCONNECT(xim_msg_t **dst, const void *src, const size_t src_len)
+{
+	xim_msg_disconnect_t *msg;
+
+	if (!(msg = calloc(1, sizeof(*msg)))) {
+		return -ENOMEM;
+	}
+
+	/* XIM_DISCONNECT message has no payload */
+
+	*dst = (xim_msg_t*)msg;
+	return sizeof(*src);
+}
+
 static int decode_XIM_OPEN(xim_msg_t **dst, const struct XIM_OPEN *src, const size_t src_len)
 {
 	xim_msg_open_t *msg;
@@ -1038,8 +1052,8 @@ int xim_msg_decode(xim_msg_t **dst, const uint8_t *src, const size_t src_len)
 
 		case XIM_DISCONNECT:
 			fprintf(stderr, "Decoding XIM_DISCONNECT\n");
-			/* no payload */
-			err = 0;
+			err = decode_XIM_DISCONNECT(&msg, (struct XIM_DISCONNECT*)(hdr + 1),
+			                            src_len - sizeof(*hdr));
 			break;
 
 		case XIM_OPEN:

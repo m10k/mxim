@@ -592,6 +592,12 @@ static void _xim_client_handle_msg(xim_client_t *client, xim_msg_t *msg)
 		handle_connect_msg(client, (xim_msg_connect_t*)msg);
 		break;
 
+	case XIM_DISCONNECT:
+		fprintf(stderr,
+		        "XIM_DISCONNECT received\n");
+		/* Nothing to do here */
+		break;
+
 	case XIM_OPEN:
 		fprintf(stderr,
 		        "XIM_OPEN received\n"
