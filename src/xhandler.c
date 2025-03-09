@@ -53,6 +53,36 @@ static int _x_handler_is_connected(x_handler_t *handler)
 	return handler->display != NULL;
 }
 
+static int _x_error_handle(Display *display, XErrorEvent *event)
+{
+	char error_text[512];
+
+	XGetErrorText(event->display, event->error_code,
+	              error_text, sizeof(error_text));
+
+	fprintf(stderr,
+	        "XErrorEvent\n"
+	        "  type = %d\n"
+	        "  display = %p\n"
+	        "  resourceid = 0x%lx\n"
+	        "  serial = %lu\n"
+	        "  error_code = %hhu\n"
+	        "  request_code = %hhu\n"
+	        "  minor_code = %hhu\n"
+	        "  -> %s\n",
+	        event->type,
+	        (void*)event->display,
+	        event->resourceid,
+	        event->serial,
+	        event->error_code,
+	        event->request_code,
+	        event->minor_code,
+	        error_text);
+
+	/* ignore errors for now */
+	return 0;
+}
+
 static int _x_handler_connect(x_handler_t *handler)
 {
 	Window root_window;
@@ -99,6 +129,9 @@ static int _x_handler_connect(x_handler_t *handler)
 
 	handler->properties[ATOM_LOCALES] = "@locales=en_US";
 	handler->properties[ATOM_TRANSPORT] = "@transport=tcp/127.0.0.1:1234";
+
+	XSetErrorHandler(_x_error_handle);
+	XSync(handler->display, False);
 
 	return 0;
 }
