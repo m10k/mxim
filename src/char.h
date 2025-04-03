@@ -275,4 +275,11 @@ int char_from_utf8(const char *src, const size_t src_len, char_t **dst);
 char_t char_combine(const char_t left, const char_t right);
 int char_same_set(const char_t left, const char_t right);
 
+int char_endswith(const char_t *str, const int str_len,
+                  const char_t *suffix, const int suffix_len);
+int char_concat(char_t **dst,
+                const char_t *first, const int first_len,
+                const char_t *second, const int second_len);
+int char_len(const char_t *str);
+
 #endif /* MXIM_CHAR_H */

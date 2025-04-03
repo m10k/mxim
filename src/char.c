@@ -684,3 +684,66 @@ int char_same_set(const char_t left, const char_t right)
 
 	return left_set == right_set;
 }
+
+int char_endswith(const char_t *str, const int str_len,
+                  const char_t *suffix, const int suffix_len)
+{
+        int n;
+
+	if (!str || !suffix) {
+		return -EINVAL;
+	}
+
+	if (str_len < suffix_len) {
+		return 2;
+	}
+
+	for (n = 0; n < suffix_len; n++) {
+		if (str[str_len - 1 - n] != suffix[suffix_len - 1 - n]) {
+			return 1;
+		}
+	}
+
+	return 0;
+}
+
+int char_concat(char_t **dst,
+                const char_t *first, const int first_len,
+                const char_t *second, const int second_len)
+{
+	char_t *concat;
+	int concat_len;
+
+	if (!dst || !first || !second) {
+		return -EINVAL;
+	}
+
+	if (INT_MAX - first_len <= second_len) {
+		return -EOVERFLOW;
+	}
+
+	concat_len = first_len + second_len;
+	if (!(concat = malloc(sizeof(*concat) * (concat_len + 1)))) {
+		return -ENOMEM;
+	}
+
+	memcpy(concat, first, first_len * sizeof(*first));
+	memcpy(concat + first_len, second, second_len * sizeof(*second));
+	concat[concat_len] = CHAR_INVALID;
+
+	*dst = concat;
+	return concat_len;
+}
+
+int char_len(const char_t *str)
+{
+	int len;
+
+	if (!str) {
+		return -EINVAL;
+	}
+
+	for (len = 0; str[len] != CHAR_INVALID; len++);
+
+	return len;
+}
