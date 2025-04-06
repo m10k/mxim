@@ -137,7 +137,7 @@ static int _trie_append_to_array(trie_t *trie, void ***array)
 	return 0;
 }
 
-int trie_get_values(trie_t *trie, const char_t *key, void ***values)
+int trie_get_values(trie_t *trie, const char_t *key, const int mode, void ***values)
 {
 	int i;
 
@@ -146,12 +146,14 @@ int trie_get_values(trie_t *trie, const char_t *key, void ***values)
 	}
 
 	if (*key != CHAR_INVALID) {
-		return trie_get_values(trie->children[*key], key + 1, values);
+		return trie_get_values(trie->children[*key], key + 1, mode, values);
 	} else {
 		_trie_append_to_array(trie, values);
 
-		for (i = 0; i < (sizeof(trie->children) / sizeof(trie->children[0])); i++) {
-			trie_get_values(trie->children[i], key, values);
+		if (mode & TRIE_LOOKUP_PREDICT) {
+			for (i = 0; i < (sizeof(trie->children) / sizeof(trie->children[0])); i++) {
+				trie_get_values(trie->children[i], key, mode, values);
+			}
 		}
 	}
 
