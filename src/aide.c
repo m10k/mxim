@@ -233,7 +233,7 @@ int aide_suggest(const char_t *key, dict_candidate_t ***suggestions)
 	for (i = 0; _dicts[i]; i++) {
 		int j;
 
-		if ((err = dict_lookup(_dicts[i], key, &entries)) < 0) {
+		if ((err = dict_lookup(_dicts[i], key, DICT_LOOKUP_MODE_PREDICT, &entries)) < 0) {
 			continue;
 		}
 

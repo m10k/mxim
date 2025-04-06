@@ -180,11 +180,11 @@ int dict_add(dict_t *dict, dict_entry_t **entries, const size_t num_entries)
 	return err;
 }
 
-int dict_lookup(const dict_t *dict, const char_t *key, dict_entry_t ***output)
+int dict_lookup(const dict_t *dict, const char_t *key, dict_lookup_mode_t mode, dict_entry_t ***output)
 {
 	if (!dict || !key || !output) {
 		return -EINVAL;
 	}
 
-	return trie_get_values(dict->trie, key, (void***)output);
+	return trie_get_values(dict->trie, key, (const int)mode, (void***)output);
 }

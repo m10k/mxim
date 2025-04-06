@@ -23,6 +23,11 @@
 
 #include "char.h"
 
+typedef enum {
+	DICT_LOOKUP_MODE_EXACT   = 0,
+	DICT_LOOKUP_MODE_PREDICT = 1
+} dict_lookup_mode_t;
+
 typedef struct dict_candidate dict_candidate_t;
 
 struct dict_candidate {
@@ -57,6 +62,6 @@ int dict_add(dict_t *dict,
              dict_entry_t **entries,
              const size_t num_entries);
 
-int dict_lookup(const dict_t *dict, const char_t *key, dict_entry_t ***output);
+int dict_lookup(const dict_t *dict, const char_t *key, dict_lookup_mode_t mode, dict_entry_t ***output);
 
 #endif /* DICT_H */
