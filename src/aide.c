@@ -20,6 +20,7 @@
 
 #define _GNU_SOURCE
 #include "aide.h"
+#include "array.h"
 #include "dict.h"
 #include "dictparser.h"
 #include "parray.h"
@@ -45,55 +46,6 @@ static int _get_dict_path(char **output)
 	}
 
 	*output = path;
-	return 0;
-}
-
-int _array_add(void ***array, void *item)
-{
-	void **arr;
-	int len;
-
-	if (!array) {
-		return -EINVAL;
-	}
-
-	len = 0;
-
-	if (*array) {
-		while ((*array)[len]) {
-			len++;
-		}
-	}
-
-	if (!(arr = realloc(*array, (len + 1 + 1) * sizeof(*arr)))) {
-		return -ENOMEM;
-	}
-
-	arr[len] = item;
-	arr[len + 1] = NULL;
-
-	*array = arr;
-	return len;
-}
-
-static int _array_free(void ***array)
-{
-	int i;
-
-	if (!array) {
-		return -EINVAL;
-	}
-
-	if (*array) {
-		for (i = 0; (*array)[i]; i++) {
-			free((*array)[i]);
-			(*array)[i] = NULL;
-		}
-
-		free(*array);
-		*array = NULL;
-	}
-
 	return 0;
 }
 
@@ -131,7 +83,7 @@ static int _list_dicts_in_path(const char *path, char ***output)
 			break;
 		}
 
-		if ((err = _array_add((void***)&dicts, dict_name)) < 0) {
+		if ((err = array_add((void***)&dicts, dict_name)) < 0) {
 			free(dict_name);
 		} else {
 			err = 0;
@@ -141,7 +93,7 @@ static int _list_dicts_in_path(const char *path, char ***output)
 	closedir(dict_dir);
 
 	if (err) {
-		_array_free((void***)&dicts);
+		array_free((void***)&dicts);
 	} else {
 		*output = dicts;
 	}
@@ -201,12 +153,12 @@ int aide_init(void)
 			continue;
 		}
 
-		if ((err = _array_add((void***)&_dicts, dict)) < 0) {
+		if ((err = array_add((void***)&_dicts, dict)) < 0) {
 			dict_free(&dict);
 		}
 	}
 
-	_array_free((void***)&dict_paths);
+	array_free((void***)&dict_paths);
 	return 0;
 }
 
