@@ -23,6 +23,7 @@
 
 #include "char.h"
 #include "dict.h"
+#include "suggestion.h"
 #include <limits.h>
 
 struct segment {
@@ -30,7 +31,7 @@ struct segment {
 	short size;
 	short len;
 
-	dict_candidate_t **candidates;
+	suggestion_t **candidates;
 	int num_candidates;
 	int selection;
 };
@@ -51,8 +52,8 @@ int segment_get_input_decorated(segment_t *segment, const int selected, const in
 int segment_get_output(segment_t *segment, char *dst, const size_t dst_size);
 
 int segment_select_candidate(segment_t *segment, const int selection);
-int segment_set_candidates(segment_t *segment, dict_candidate_t **candidates);
-int segment_get_candidates(segment_t *segment, dict_candidate_t ***candidates);
+int segment_set_candidates(segment_t *segment, suggestion_t **candidates);
+int segment_get_candidates(segment_t *segment, suggestion_t ***candidates);
 int segment_move_candidate(segment_t *segment, const int dir);
 int segment_update_candidates(segment_t *segment);
 

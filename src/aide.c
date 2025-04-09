@@ -168,8 +168,25 @@ static int _cmp_candidate_priority(const dict_candidate_t *a,
 	return b->priority - a->priority;
 }
 
-int aide_suggest(const char_t *key, dict_candidate_t ***suggestions)
+static int _make_suggestion(dict_candidate_t *candidate, suggestion_t ***suggestions)
 {
+	suggestion_t *suggestion;
+
+	if (suggestion_new(&suggestion, candidate->value, NULL) < 0) {
+		return -ENOMEM;
+	}
+
+	if (array_add((void***)suggestions, suggestion) < 0) {
+		suggestion_free(&suggestion);
+		return -ENOMEM;
+	}
+
+	return 0;
+}
+
+int aide_suggest(const char_t *key, suggestion_t ***suggestions)
+{
+	dict_candidate_t **candidates;
 	parray_t *parray;
 	dict_entry_t **entries;
 	int err;
@@ -177,6 +194,7 @@ int aide_suggest(const char_t *key, dict_candidate_t ***suggestions)
 
 	parray = NULL;
 	entries = NULL;
+	candidates = NULL;
 
 	if ((err = parray_new(&parray, (int(*)(const void*, const void*))_cmp_candidate_priority)) < 0) {
 		goto cleanup;
@@ -195,9 +213,14 @@ int aide_suggest(const char_t *key, dict_candidate_t ***suggestions)
 		}
 	}
 
-	err = parray_get_items(parray, (const void***)suggestions);
+	if (!(err = parray_get_items(parray, (const void***)&candidates))) {
+		err = array_foreach((void***)&candidates,
+		                    (int(*)(void*, void*))_make_suggestion,
+		                    suggestions);
+	}
 
 cleanup:
+	free(candidates);
 	parray_free(&parray);
 	/* only free the array, not the items that it points to */
 	free(entries);

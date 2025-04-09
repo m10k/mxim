@@ -19,8 +19,10 @@
  */
 
 #include "aide.h"
+#include "array.h"
 #include "char.h"
 #include "segment.h"
+#include "suggestion.h"
 #include "string.h"
 #include <errno.h>
 #include <limits.h>
@@ -222,10 +224,18 @@ int segment_get_input_decorated(segment_t *segment, const int selected, const in
 			goto cleanup;
 		}
 	} else {
+		const char *text;
+		size_t text_len;
+
+		if (segment->candidates && segment->selection >= 0) {
+			text = suggestion_get_display(segment->candidates[segment->selection]);
+			text_len = strlen(text);
+		} else {
+			text = NULL;
+		}
+
 		if (string_new(&escape) < 0 ||
-		    (err = (segment->candidates && segment->selection >= 0) ?
-		     string_append_utf8(escape, segment->candidates[segment->selection]->value,
-		                        strlen(segment->candidates[segment->selection]->value)) :
+		    (err = text ? string_append_utf8(escape, text, text_len) :
 		     string_append_char(escape, segment->input, segment->len)) < 0 ||
 		    (err = string_replace(escape, "&", "&amp;")) < 0 ||
 		    (err = string_replace(escape, "<", "&lt;")) < 0 ||
@@ -241,6 +251,9 @@ int segment_get_input_decorated(segment_t *segment, const int selected, const in
 			static const char _selection_header[] = "<span foreground=\"blue\">";
 			static const char _selection_trailer[] = "</span>";
 
+			const char *text;
+			size_t text_len;
+
 			if ((err = string_append_utf8(input, "|", 1)) < 0) {
 				goto cleanup;
 			}
@@ -251,9 +264,11 @@ int segment_get_input_decorated(segment_t *segment, const int selected, const in
 				goto cleanup;
 			}
 
+			text = suggestion_get_display(segment->candidates[i]);
+			text_len = strlen(text);
+
 			if ((err = string_new(&escape)) < 0 ||
-			    (err = string_append_utf8(escape, segment->candidates[i]->value,
-			                              strlen(segment->candidates[i]->value))) < 0 ||
+			    (err = string_append_utf8(escape, text, text_len)) < 0 ||
 			    (err = string_replace(escape, "&", "&amp;")) < 0 ||
 			    (err = string_replace(escape, "<", "&lt;")) < 0 ||
 			    (err = string_replace(escape, ">", "&gt;")) < 0 ||
@@ -296,8 +311,8 @@ int segment_get_output(segment_t *segment, char *dst, const size_t dst_size)
 		/* no candidate selected - return input */
 		return segment_get_input(segment, dst, dst_size);
 	}
-	segment->candidates[segment->selection]->priority++;
-	return snprintf(dst, dst_size, "%s", segment->candidates[segment->selection]->value);
+/*	segment->candidates[segment->selection]->candidate->priority++; */
+	return snprintf(dst, dst_size, "%s", suggestion_get_value(segment->candidates[segment->selection]));
 }
 
 int segment_select_candidate(segment_t *segment, const int selection)
@@ -314,41 +329,52 @@ int segment_select_candidate(segment_t *segment, const int selection)
 	return 0;
 }
 
-int segment_set_candidates(segment_t *segment, dict_candidate_t **candidates)
-{
-	dict_candidate_t *old_selection;
+struct _count_and_cmp_args {
+	suggestion_t *old_selection;
 	int new_selection;
 	int num_candidates;
+};
 
-	old_selection = NULL;
-	new_selection = -1;
-	num_candidates = 0;
+int _count_and_cmp_candidates(suggestion_t *candidate, struct _count_and_cmp_args *args)
+{
+	if (args->old_selection && suggestion_cmp(candidate, args->old_selection) == 0) {
+		args->new_selection = args->num_candidates;
+	}
+
+	args->num_candidates++;
+	return 0;
+}
+
+int _free_candidates(suggestion_t *candidate, void *unused)
+{
+	suggestion_free(&candidate);
+	return 0;
+}
+
+int segment_set_candidates(segment_t *segment, suggestion_t **candidates)
+{
+	struct _count_and_cmp_args args;
+
+	args.old_selection = NULL;
+	args.new_selection = -1;
+	args.num_candidates = 0;
 
 	if (segment->selection >= 0 && segment->selection < segment->num_candidates) {
-		old_selection = segment->candidates[segment->selection];
+		args.old_selection = segment->candidates[segment->selection];
 	}
 
-	if (candidates) {
-		for (num_candidates = 0; candidates[num_candidates]; num_candidates++) {
-			/*
-			 * While we're checking the size of the array, check also if the old
-			 * selection is present in the new candidate array.
-			 */
-			if (old_selection && old_selection == candidates[num_candidates]) {
-				new_selection = num_candidates;
-			}
-		}
-	}
+	array_foreach((void***)&candidates, (int(*)(void*, void*))_count_and_cmp_candidates, &args);
+	array_foreach((void***)&segment->candidates, (int(*)(void*, void*))_free_candidates, NULL);
 
 	free(segment->candidates);
 	segment->candidates = candidates;
-	segment->num_candidates = num_candidates;
-	segment->selection = new_selection;
+	segment->num_candidates = args.num_candidates;
+	segment->selection = args.new_selection;
 
-	return num_candidates;
+	return args.num_candidates;
 }
 
-int segment_get_candidates(segment_t *segment, dict_candidate_t ***candidates)
+int segment_get_candidates(segment_t *segment, suggestion_t ***candidates)
 {
 	if (!segment || !candidates) {
 		return -EINVAL;
@@ -383,7 +409,7 @@ int segment_move_candidate(segment_t *segment, const int dir)
 
 int segment_update_candidates(segment_t *segment)
 {
-	dict_candidate_t **candidates;
+	suggestion_t **candidates;
 
 	if (!segment) {
 		return -EINVAL;

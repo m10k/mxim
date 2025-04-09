@@ -23,8 +23,9 @@
 
 #include "char.h"
 #include "dict.h"
+#include "suggestion.h"
 
 int aide_init(void);
-int aide_suggest(const char_t *key, dict_candidate_t ***suggestions);
+int aide_suggest(const char_t *key, suggestion_t ***suggestions);
 
 #endif /* AIDE_H */
