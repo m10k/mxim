@@ -23,5 +23,7 @@
 
 int array_add(void ***array, void *item);
 int array_free(void ***array);
+int array_foreach(void ***array, int (*func)(void*, void*), void *data);
+int array_len(const void ***array);
 
 #endif /* MXIM_ARRAY_H */

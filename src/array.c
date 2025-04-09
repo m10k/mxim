@@ -70,3 +70,38 @@ int array_free(void ***array)
 
         return 0;
 }
+
+int array_foreach(void ***array, int (*func)(void*, void*), void *data)
+{
+	int err;
+	int i;
+
+	if (!array || !func) {
+		return -EINVAL;
+	}
+
+	if (!*array) {
+		return -ENOENT;
+	}
+
+	for (i = 0, err = 0; (*array)[i]; i++) {
+		if ((err = func((*array)[i], data)) < 0) {
+			break;
+		}
+	}
+
+	return err;
+}
+
+int array_len(const void ***array)
+{
+	int len;
+
+	if (!array) {
+		return -EINVAL;
+	}
+
+	for (len = 0; *array && (*array)[len]; len++);
+
+	return len;
+}
