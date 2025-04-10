@@ -747,3 +747,33 @@ int char_len(const char_t *str)
 
 	return len;
 }
+
+int char_dup(char_t **dst, const char_t *src, const int src_len)
+{
+	int effective_len;
+	char_t *new;
+
+	if (!dst || !src) {
+		return -EINVAL;
+	}
+
+	if (src_len == 0) {
+		effective_len = char_len(src);
+	} else {
+		effective_len = src_len;
+	}
+
+	if (effective_len == INT_MAX) {
+		return -EOVERFLOW;
+	}
+
+	if (!(new = malloc((effective_len + 1) * sizeof(*new)))) {
+		return -ENOMEM;
+	}
+
+	memcpy(new, src, effective_len);
+	new[effective_len] = CHAR_INVALID;
+
+	*dst = new;
+	return effective_len;
+}

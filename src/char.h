@@ -281,5 +281,6 @@ int char_concat(char_t **dst,
                 const char_t *first, const int first_len,
                 const char_t *second, const int second_len);
 int char_len(const char_t *str);
+int char_dup(char_t **dst, const char_t *src, const int src_len);
 
 #endif /* MXIM_CHAR_H */
