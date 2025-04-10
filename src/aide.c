@@ -93,7 +93,7 @@ static int _list_dicts_in_path(const char *path, char ***output)
 	closedir(dict_dir);
 
 	if (err) {
-		array_free((void***)&dicts);
+		array_free((void***)&dicts, ARRAY_GENERIC_FREE);
 	} else {
 		*output = dicts;
 	}
@@ -158,7 +158,7 @@ int aide_init(void)
 		}
 	}
 
-	array_free((void***)&dict_paths);
+	array_free((void***)&dict_paths, ARRAY_GENERIC_FREE);
 	return 0;
 }
 

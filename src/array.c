@@ -50,7 +50,18 @@ int array_add(void ***array, void *item)
         return len;
 }
 
-int array_free(void ***array)
+static int _generic_dealloc(void **ptr)
+{
+	if (!ptr) {
+		return -EINVAL;
+	}
+
+	free(*ptr);
+	*ptr = NULL;
+	return 0;
+}
+
+int array_free(void ***array, int (*dealloc)(void **))
 {
         int i;
 
@@ -58,11 +69,16 @@ int array_free(void ***array)
                 return -EINVAL;
         }
 
+        if (dealloc == ARRAY_GENERIC_FREE) {
+	        dealloc = _generic_dealloc;
+        }
+
         if (*array) {
-                for (i = 0; (*array)[i]; i++) {
-                        free((*array)[i]);
-                        (*array)[i] = NULL;
-                }
+	        if (dealloc != ARRAY_DONT_FREE) {
+		        for (i = 0; (*array)[i]; i++) {
+			        dealloc(&(*array)[i]);
+		        }
+	        }
 
                 free(*array);
                 *array = NULL;

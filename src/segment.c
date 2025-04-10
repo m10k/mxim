@@ -345,12 +345,6 @@ int _count_and_cmp_candidates(suggestion_t *candidate, struct _count_and_cmp_arg
 	return 0;
 }
 
-int _free_candidates(suggestion_t *candidate, void *unused)
-{
-	suggestion_free(&candidate);
-	return 0;
-}
-
 int segment_set_candidates(segment_t *segment, suggestion_t **candidates)
 {
 	struct _count_and_cmp_args args;
@@ -364,9 +358,7 @@ int segment_set_candidates(segment_t *segment, suggestion_t **candidates)
 	}
 
 	array_foreach((void***)&candidates, (int(*)(void*, void*))_count_and_cmp_candidates, &args);
-	array_foreach((void***)&segment->candidates, (int(*)(void*, void*))_free_candidates, NULL);
-
-	free(segment->candidates);
+	array_free((void***)&segment->candidates, (int(*)(void**))suggestion_free);
 	segment->candidates = candidates;
 	segment->num_candidates = args.num_candidates;
 	segment->selection = args.new_selection;
