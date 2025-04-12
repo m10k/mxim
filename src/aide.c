@@ -21,6 +21,7 @@
 #define _GNU_SOURCE
 #include "aide.h"
 #include "array.h"
+#include "conjugation.h"
 #include "dict.h"
 #include "dictparser.h"
 #include "parray.h"
@@ -31,6 +32,8 @@
 #include <string.h>
 
 static dict_t **_dicts = NULL;
+
+static int aide_unconjugate(const char_t *conjugated, conjugation_t ***conjugations);
 
 static int _get_dict_path(char **output)
 {
@@ -162,68 +165,166 @@ int aide_init(void)
 	return 0;
 }
 
-static int _cmp_candidate_priority(const dict_candidate_t *a,
-                                   const dict_candidate_t *b)
+static int _cmp_suggestion(const suggestion_t *a,
+                           const suggestion_t *b)
 {
 	return b->priority - a->priority;
 }
 
-static int _make_suggestion(dict_candidate_t *candidate, suggestion_t ***suggestions)
+static int _candidate_to_suggestion(suggestion_t **suggestion, dict_candidate_t *candidate,
+                                    conjugation_t *conjugation)
 {
-	suggestion_t *suggestion;
-
-	if (suggestion_new(&suggestion, candidate->value, NULL) < 0) {
-		return -ENOMEM;
+	if (!suggestion || !candidate || !conjugation) {
+		return -EINVAL;
 	}
 
-	if (array_add((void***)suggestions, suggestion) < 0) {
-		suggestion_free(&suggestion);
-		return -ENOMEM;
+	suggestion_t *suggest;
+	char *conjugated;
+	int err;
+
+	if ((err = conjugation_conjugate(&conjugated, candidate->value,
+	                                 conjugation)) < 0) {
+		return err;
+	}
+
+	err = suggestion_new(&suggest, conjugated, NULL);
+
+	if (!err) {
+		suggest->priority = candidate->priority;
+		suggest->data = candidate;
+		*suggestion = suggest;
+	}
+
+	free(conjugated);
+	return err;
+}
+
+struct _entries_to_suggestions_args {
+	parray_t *parray;
+	conjugation_t *conjugation;
+};
+
+static int _entries_to_suggestions(dict_entry_t *entry, struct _entries_to_suggestions_args *args)
+{
+	int err;
+	int i;
+
+	if (!entry || !args || !args->parray || !args->conjugation) {
+		return -EINVAL;
+	}
+
+	/* TODO: create suggestion_t for each dict_candidate_t in `entry' and add them to `args->parray' */
+	for (i = 0; i < entry->num_candidates; i++) {
+		dict_candidate_t *candidate;
+		suggestion_t *suggestion;
+
+		candidate = entry->candidates[i];
+
+		if ((err = _candidate_to_suggestion(&suggestion, candidate, args->conjugation)) < 0) {
+			continue;
+		}
+
+		if ((err = parray_insert(args->parray, (const void**)&suggestion, 1)) < 0) {
+			suggestion_free(&suggestion);
+			return err;
+		}
 	}
 
 	return 0;
 }
 
-int aide_suggest(const char_t *key, suggestion_t ***suggestions)
+static int _lookup_conjugation(conjugation_t *conjugation, parray_t *parray)
 {
-	dict_candidate_t **candidates;
-	parray_t *parray;
+	struct _entries_to_suggestions_args args;
+	dict_lookup_mode_t lkup_mode;
 	dict_entry_t **entries;
 	int err;
 	int i;
 
-	parray = NULL;
+	if (!conjugation || !parray) {
+		return -EINVAL;
+	}
+
+	args.conjugation = conjugation;
+	args.parray = parray;
 	entries = NULL;
-	candidates = NULL;
+	err = 0;
 
-	if ((err = parray_new(&parray, (int(*)(const void*, const void*))_cmp_candidate_priority)) < 0) {
-		goto cleanup;
-	}
+	/* Get only exact matches if we are going to conjugate */
+	lkup_mode = conjugation->conjugation_len > 0 ?
+		DICT_LOOKUP_MODE_PREDICT : DICT_LOOKUP_MODE_EXACT;
 
+	/* look up the conjugation in each of our dictionaries and collect results in `entries' */
 	for (i = 0; _dicts[i]; i++) {
-		int j;
-
-		if ((err = dict_lookup(_dicts[i], key, DICT_LOOKUP_MODE_PREDICT, &entries)) < 0) {
-			continue;
-		}
-
-		for (j = 0; entries[j] && j < 10; j++) {
-			parray_insert(parray, (const void**)entries[j]->candidates,
-			              entries[j]->num_candidates);
-		}
+		dict_lookup(_dicts[i], conjugation->dict_form, lkup_mode, &entries);
 	}
 
-	if (!(err = parray_get_items(parray, (const void***)&candidates))) {
-		err = array_foreach((void***)&candidates,
-		                    (int(*)(void*, void*))_make_suggestion,
-		                    suggestions);
-	}
+	/*
+	 * Each entry (type dict_entry_t) contains multiple candidates (type dict_candidate_t), which
+	 * we have to convert into suggestions (type suggestion_t). Suggestions will retain a reference
+	 * to the dict candidate that they were created from (for collecting statistics on frequently
+	 * used words, to improve suggestion quality), as well as the priority.
+	 */
+	err = array_foreach((void***)&entries, (int(*)(void*, void*))_entries_to_suggestions, &args);
 
-cleanup:
-	free(candidates);
-	parray_free(&parray);
-	/* only free the array, not the items that it points to */
+	/* elements in `entries' are shared, so don't free them */
 	free(entries);
+
+	return err;
+}
+
+int aide_suggest(const char_t *key, suggestion_t ***suggestions)
+{
+	parray_t *parray;
+	conjugation_t **conjugations;
+	int err;
+
+	parray = NULL;
+	conjugations = NULL;
+
+	/* parray will be used to order suggestions presented to the user */
+	if ((err = parray_new(&parray, (int(*)(const void*, const void*))_cmp_suggestion)) < 0) {
+		return err;
+	}
+
+	/*
+	 * The input may be a conjugated form of a word, so we need to determine the
+	 * dictionary form. The `aide_unconjugate()` method always succeeds (except
+	 * if we run out of memory or pass invalid inputs): If the input is not a
+	 * recognized conjugation, it returns a null-conjugation, i.e. a conjugation
+	 * that contains the raw input and can be used as if it was a conjugation.
+	 */
+	if ((err = aide_unconjugate(key, &conjugations)) >= 0) {
+		/*
+		 * Because we cannot decide which one is the correct conjugation (for example,
+		 * いった could be a conjugation of いく, いう, etc) we query all conjugations
+		 * and return all results to the caller. Ultimately, the user will have to make
+		 * the decision.
+		 */
+		array_foreach((void***)&conjugations, (int(*)(void*, void*))_lookup_conjugation, parray);
+
+		err = parray_get_items(parray, (const void***)suggestions);
+	}
+
+	array_free((void***)&conjugations, (int(*)(void**))conjugation_free);
+	parray_free(&parray);
+
+	return err;
+}
+
+static int aide_unconjugate(const char_t *conjugated, conjugation_t ***conjugations)
+{
+	conjugation_t *conjugation;
+	int err;
+
+	/* null conjugation */
+	if ((err = conjugation_new(&conjugation, conjugated, 0, NULL, 0)) < 0) {
+		return err;
+	}
+
+	if ((err = array_add((void***)conjugations, conjugation)) < 0) {
+		conjugation_free(&conjugation);
+	}
 
 	return err;
 }
