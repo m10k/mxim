@@ -121,7 +121,7 @@ int conjugation_conjugate(char **dst, const char *src, conjugation_t *conjugatio
 
 	memcpy(dst_str, src, src_bytes);
 	char_to_utf8(conjugation->conjugation, conjugation->conjugation_len,
-	             dst_str + src_bytes, dst_bytes - src_bytes);
+	             dst_str + src_bytes, dst_bytes - src_bytes + 1);
 
 	dst_str[dst_bytes] = 0;
 	*dst = dst_str;
