@@ -33,7 +33,7 @@ int suggestion_new(suggestion_t **suggestion, const char *value, const char *dis
 		return -EINVAL;
 	}
 
-	if (!(sug = malloc(sizeof(*sug)))) {
+	if (!(sug = calloc(1, sizeof(*sug)))) {
 		return -ENOMEM;
 	}
 

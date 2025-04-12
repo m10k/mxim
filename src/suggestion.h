@@ -24,6 +24,9 @@
 struct suggestion {
 	char *display;
 	char *value;
+
+	int priority;
+	void *data;
 };
 
 typedef struct suggestion suggestion_t;
