@@ -771,7 +771,7 @@ int char_dup(char_t **dst, const char_t *src, const int src_len)
 		return -ENOMEM;
 	}
 
-	memcpy(new, src, effective_len);
+	memcpy(new, src, effective_len * sizeof(*new));
 	new[effective_len] = CHAR_INVALID;
 
 	*dst = new;
