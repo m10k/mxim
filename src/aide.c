@@ -25,6 +25,7 @@
 #include "dict.h"
 #include "dictparser.h"
 #include "parray.h"
+#include "japanese.h"
 #include <dirent.h>
 #include <errno.h>
 #include <stdio.h>
@@ -213,7 +214,14 @@ static int _entries_to_suggestions(dict_entry_t *entry, struct _entries_to_sugge
 		return -EINVAL;
 	}
 
-	/* TODO: create suggestion_t for each dict_candidate_t in `entry' and add them to `args->parray' */
+	/*
+	 * FIXME: Word type mismatches need to be filtered
+	 *
+	 * This will attempt to conjugate any kind of word, including words that cannot be
+	 * conjugated. For example, 長居 should not be treated like 長い and conjugated to
+	 * 長く or 長かった and so on.
+	 */
+
 	for (i = 0; i < entry->num_candidates; i++) {
 		dict_candidate_t *candidate;
 		suggestion_t *suggestion;
@@ -317,13 +325,15 @@ static int aide_unconjugate(const char_t *conjugated, conjugation_t ***conjugati
 	conjugation_t *conjugation;
 	int err;
 
-	/* null conjugation */
-	if ((err = conjugation_new(&conjugation, conjugated, 0, NULL, 0)) < 0) {
-		return err;
-	}
+	if ((err = japanese_unconjugate(conjugated, conjugations)) < 0) {
+		/* fall back to null conjugation */
+		if ((err = conjugation_new(&conjugation, conjugated, 0, NULL, 0)) < 0) {
+			return err;
+		}
 
-	if ((err = array_add((void***)conjugations, conjugation)) < 0) {
-		conjugation_free(&conjugation);
+		if ((err = array_add((void***)conjugations, conjugation)) < 0) {
+			conjugation_free(&conjugation);
+		}
 	}
 
 	return err;
