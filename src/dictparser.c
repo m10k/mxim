@@ -810,6 +810,11 @@ static int _get_dict_candidate(struct entry *entry, dict_candidate_t **out)
 		c->priority = 0;
 	}
 
+	if (_get_property(entry->property_list, "type", (void*)&c->type) < 0) {
+		/* we're OK with candidates without type property */
+		c->type = 0;
+	}
+
 	if ((err = _get_property(entry->property_list, "value", (void*)&c->value)) < 0) {
 		dict_candidate_free(&c);
 	} else {

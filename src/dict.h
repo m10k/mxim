@@ -33,6 +33,7 @@ typedef struct dict_candidate dict_candidate_t;
 struct dict_candidate {
 	char *value;
 	int priority;
+	int type;
 };
 
 typedef struct dict_entry dict_entry_t;
