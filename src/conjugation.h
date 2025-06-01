@@ -30,6 +30,7 @@ struct conjugation {
 	int suffix_len;
 	char_t *conjugation;
 	int conjugation_len;
+	int type;
 };
 
 int conjugation_new(conjugation_t **dst, const char_t *dict_form, const int suffix_len,
