@@ -24,6 +24,29 @@
 #include "char.h"
 #include "conjugation.h"
 
+typedef enum {
+	JA_TYPE_OTHER = 0,
+	JA_TYPE_ADJ_I,
+	JA_TYPE_ADJ_YOI,
+	JA_TYPE_ADJ_KARI,
+	JA_TYPE_ADJ_KU,
+	JA_TYPE_ADJ_NA,
+	JA_TYPE_VERB,
+	JA_TYPE_VERB_1,
+	JA_TYPE_VERB_1_KURERU,
+	JA_TYPE_VERB_5,
+	JA_TYPE_VERB_5_IKU,
+	JA_TYPE_VERB_5_ARU,
+	JA_TYPE_VERB_5_RU_IRREG,
+	JA_TYPE_VERB_5_U_SPEC,
+	JA_TYPE_VERB_5_URU_OLD,
+	JA_TYPE_VERB_KURU,
+	JA_TYPE_VERB_NU_IRREG,
+	JA_TYPE_VERB_RU_IRREG,
+	JA_TYPE_VERB_SURU,
+	JA_TYPE_VERB_SU
+} japanese_type_t;
+
 int japanese_unconjugate(const char_t *kana, conjugation_t ***results);
 
 #endif /* MXIM_JAPANESE_H */
