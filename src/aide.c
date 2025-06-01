@@ -183,6 +183,11 @@ static int _candidate_to_suggestion(suggestion_t **suggestion, dict_candidate_t 
 	char *conjugated;
 	int err;
 
+	/* Do not conjugate if the types don't match */
+	if (conjugation->type && candidate->type != conjugation->type) {
+		return -EDOM;
+	}
+
 	if ((err = conjugation_conjugate(&conjugated, candidate->value,
 	                                 conjugation)) < 0) {
 		return err;
@@ -213,14 +218,6 @@ static int _entries_to_suggestions(dict_entry_t *entry, struct _entries_to_sugge
 	if (!entry || !args || !args->parray || !args->conjugation) {
 		return -EINVAL;
 	}
-
-	/*
-	 * FIXME: Word type mismatches need to be filtered
-	 *
-	 * This will attempt to conjugate any kind of word, including words that cannot be
-	 * conjugated. For example, 長居 should not be treated like 長い and conjugated to
-	 * 長く or 長かった and so on.
-	 */
 
 	for (i = 0; i < entry->num_candidates; i++) {
 		dict_candidate_t *candidate;
