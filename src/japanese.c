@@ -191,6 +191,8 @@ static int get_i_adjective_conjugation(const char_t *kana, const size_t kana_len
 		return -ENOMEM;
 	}
 
+	conjugation->type = JA_TYPE_ADJ_I;
+
 #if DEBUG_JAPANESE
 	{
 		char *from;
