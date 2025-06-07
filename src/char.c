@@ -714,7 +714,8 @@ int char_concat(char_t **dst,
 	char_t *concat;
 	int concat_len;
 
-	if (!dst || !first || !second) {
+	if (!dst || first_len < 0 || second_len < 0 ||
+	    (!first && first_len > 0) || (!second && second_len > 0)) {
 		return -EINVAL;
 	}
 
@@ -727,8 +728,12 @@ int char_concat(char_t **dst,
 		return -ENOMEM;
 	}
 
-	memcpy(concat, first, first_len * sizeof(*first));
-	memcpy(concat + first_len, second, second_len * sizeof(*second));
+	if (first && first_len > 0) {
+		memcpy(concat, first, first_len * sizeof(*first));
+	}
+	if (second && second_len > 0) {
+		memcpy(concat + first_len, second, second_len * sizeof(*second));
+	}
 	concat[concat_len] = CHAR_INVALID;
 
 	*dst = concat;
