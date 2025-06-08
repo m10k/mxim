@@ -257,7 +257,7 @@ static int _lookup_conjugation(conjugation_t *conjugation, parray_t *parray)
 
 	/* Get only exact matches if we are going to conjugate */
 	lkup_mode = conjugation->conjugation_len > 0 ?
-		DICT_LOOKUP_MODE_PREDICT : DICT_LOOKUP_MODE_EXACT;
+		DICT_LOOKUP_MODE_EXACT : DICT_LOOKUP_MODE_PREDICT;
 
 	/* look up the conjugation in each of our dictionaries and collect results in `entries' */
 	for (i = 0; _dicts[i]; i++) {
