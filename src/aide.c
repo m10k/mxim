@@ -275,6 +275,11 @@ static int _lookup_conjugation(conjugation_t *conjugation, parray_t *parray)
 	/* elements in `entries' are shared, so don't free them */
 	free(entries);
 
+	/* don't stop the calling loop if this call didn't yield any results */
+	if (err == -ENOENT) {
+		err = 0;
+	}
+
 	return err;
 }
 
