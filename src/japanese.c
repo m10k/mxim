@@ -115,9 +115,46 @@ static const char_t _suffix_kattara[] = {
 static const char_t _suffix_ku[] = {
 	CHAR_JA_KU, CHAR_INVALID
 };
+static const char_t _suffix_sou[] = {
+	CHAR_JA_SO, CHAR_JA_U, CHAR_INVALID
+};
+
+static const char_t _suffix_ii[] = {
+	CHAR_JA_I, CHAR_JA_I, CHAR_INVALID
+};
+static const char_t _suffix_yokarou[] = {
+	CHAR_JA_YO, CHAR_JA_KA, CHAR_JA_RO, CHAR_JA_U, CHAR_INVALID
+};
+static const char_t _suffix_yoi[] = {
+	CHAR_JA_YO, CHAR_JA_I, CHAR_INVALID
+};
+static const char_t _suffix_yokatta[] = {
+	CHAR_JA_YO, CHAR_JA_KA, CHAR_JA_tu, CHAR_JA_TA, CHAR_INVALID
+};
+static const char_t _suffix_yokereba[] = {
+	CHAR_JA_YO, CHAR_JA_KE, CHAR_JA_RE, CHAR_JA_BA, CHAR_INVALID
+};
+static const char_t _suffix_yokattara[] = {
+	CHAR_JA_YO, CHAR_JA_KA, CHAR_JA_tu, CHAR_JA_TA, CHAR_JA_RA, CHAR_INVALID
+};
+static const char_t _suffix_yoku[] = {
+	CHAR_JA_YO, CHAR_JA_KU, CHAR_INVALID
+};
+static const char_t _suffix_yosasou[] = {
+	CHAR_JA_YO, CHAR_JA_SA, CHAR_JA_SO, CHAR_JA_U, CHAR_INVALID
+};
 
 static const char_t *_i_adj_suffixes[] = {
-	_suffix_karou, _suffix_i, _suffix_katta, _suffix_kereba, _suffix_kattara, _suffix_ku, NULL
+	_suffix_karou, _suffix_i, _suffix_katta, _suffix_kereba, _suffix_kattara, _suffix_ku,
+	_suffix_sou, NULL
+};
+static const char_t *_yoi_adj_suffixes[] = {
+	_suffix_yokarou, _suffix_yoi, _suffix_yokatta, _suffix_yokereba, _suffix_yokattara,
+	_suffix_yoku, _suffix_yosasou, NULL
+};
+static const char_t *_ii_adj_suffixes[] = {
+	_suffix_yokarou, _suffix_ii, _suffix_yokatta, _suffix_yokereba, _suffix_yokattara,
+	_suffix_yoku, _suffix_yosasou, NULL
 };
 
 static int endswith_oneof(const char_t *str, const int str_len,
@@ -146,62 +183,64 @@ static int endswith_oneof(const char_t *str, const int str_len,
 	return -ENOENT;
 }
 
-static int get_i_adjective_conjugation(const char_t *kana, const size_t kana_len,
-                                       conjugation_t ***results)
+static int probe_conjugation_by_suffix_match(const char_t *kana, const int kana_len,
+                                             const char_t **suffixes, const int type,
+                                             const char_t *dict_suffix, const int dict_suffix_len,
+                                             conjugation_t ***results)
 {
 	int suffix_idx;
 	int suffix_len;
 	int stem_len;
+	int dict_len;
 	char_t *dict_form;
-        conjugation_t *conjugation;
+	conjugation_t *conjugation;
+	int err;
 
-	if (!kana || !results) {
+	if (!kana || !results || !suffixes) {
 		return -EINVAL;
 	}
 
-	/*
-	 * Check if the input ends with one of the suffixes
-	 * that are possible i-adjective conjugations
-	 */
-	if ((suffix_idx = endswith_oneof(kana, kana_len, _i_adj_suffixes)) < 0) {
-		return suffix_idx;
+	if ((suffix_idx = endswith_oneof(kana, kana_len, suffixes)) < 0) {
+		/* this is fine, don't return an error */
+		return 0;
 	}
-
-	suffix_len = char_len(_i_adj_suffixes[suffix_idx]);
+	suffix_len = char_len(suffixes[suffix_idx]);
 	stem_len = kana_len - suffix_len;
 
+	if ((dict_len = char_concat(&dict_form, kana, stem_len, dict_suffix, char_len(dict_suffix))) < 0) {
+		fprintf(stderr, "char_concat() = %d\n", dict_len);
+		return dict_len;
+	}
+
 #if DEBUG_JAPANESE
-	fprintf(stderr,
-	        "suffix_idx = %d\n"
-	        "suffix_len = %d\n"
-	        "stem_len   = %d\n", suffix_idx, suffix_len, stem_len);
+	{
+		char *utf8;
+
+		char_to_utf8_dyn(dict_form, char_len(dict_form), &utf8);
+		fprintf(stderr, "%s: dict_form: %s\n", __func__, utf8);
+		free(utf8);
+	}
 #endif /* DEBUG_JAPANESE */
 
-	/*
-	 * Get the dictionary form of the adjective by stripping
-	 * the conjugated suffix and adding い to the stem
-	 */
-	if (char_concat(&dict_form, kana, stem_len, _suffix_i, 1) < 0) {
-		fprintf(stderr, "Could not concatenate i adjective\n");
-		return -ENOMEM;
-	}
-
-	if (conjugation_new(&conjugation, dict_form, 1, _i_adj_suffixes[suffix_idx], suffix_len) < 0) {
+	if ((err = conjugation_new(&conjugation, dict_form, dict_suffix_len,
+	                           suffixes[suffix_idx], suffix_len)) < 0) {
 		free(dict_form);
-		return -ENOMEM;
+		fprintf(stderr, "conjugation_new() = %d\n", err);
+		return err;
 	}
-
-	conjugation->type = JA_TYPE_ADJ_I;
+	conjugation->type = type;
 
 #if DEBUG_JAPANESE
 	{
 		char *from;
 		char *to;
 
+		fprintf(stderr, "kana_len = %d, suffix_len = %d, dict_suffix_len = %d, type = %d\n",
+		        kana_len, suffix_len, dict_suffix_len, type);
 		fprintf(stderr, "Adding %p to array %p\n", (void*)conjugation, (void*)results);
 		char_to_utf8_dyn(kana, kana_len, &from);
 		fprintf(stderr, "%s -> ", from);
-		char_to_utf8_dyn(dict_form, stem_len + 1, &to);
+		char_to_utf8_dyn(dict_form, dict_len, &to);
 		fprintf(stderr, "%s\n", to);
 
 		free(from);
@@ -210,9 +249,6 @@ static int get_i_adjective_conjugation(const char_t *kana, const size_t kana_len
 #endif /* DEBUG_JAPANESE */
 
 	if (array_add((void***)results, (void*)conjugation) < 0) {
-#if DEBUG_JAPANESE
-		fprintf(stderr, "Could not add adjective to array\n");
-#endif /* DEBUG_JAPANESE */
 		free(conjugation);
 		free(dict_form);
 
@@ -222,24 +258,87 @@ static int get_i_adjective_conjugation(const char_t *kana, const size_t kana_len
 	return 0;
 }
 
+static int get_i_adjective_conjugation(const char_t *kana, const size_t kana_len,
+                                       conjugation_t ***results)
+{
+	static const struct {
+		const char_t **input_suffixes;
+		const char_t *dict_suffix;
+		int type;
+	} _probes[] = {
+		{
+			.input_suffixes = _yoi_adj_suffixes,
+			.dict_suffix    = _suffix_yoi,
+			.type           = JA_TYPE_ADJ_YOI
+		}, {
+			.input_suffixes = _ii_adj_suffixes,
+			.dict_suffix    = _suffix_ii,
+			.type           = JA_TYPE_ADJ_YOI
+		}, {
+			.input_suffixes = _i_adj_suffixes,
+			.dict_suffix    = _suffix_i,
+			.type           = JA_TYPE_ADJ_I
+		}, {
+			.input_suffixes = NULL,
+			.dict_suffix    = NULL,
+			.type           = 0
+		}
+	};
+
+	int err;
+	int i;
+
+	for (i = err = 0; err >= 0 && _probes[i].input_suffixes; i++) {
+		err = probe_conjugation_by_suffix_match(kana, kana_len, _probes[i].input_suffixes,
+		                                        _probes[i].type, _probes[i].dict_suffix, 1,
+		                                        results);
+	}
+
+	return err;
+}
+
+static const struct {
+	int (*func)(const char_t *, const size_t, conjugation_t ***);
+	const char *name;
+} _deconjugators[] = {
+	{
+		.func = get_i_adjective_conjugation,
+		.name = "get_i_adjective_conjugation"
+	}, {
+		.func = NULL,
+		.name = NULL
+	}
+};
+
 int japanese_unconjugate(const char_t *kana, conjugation_t ***results)
 {
 	int kana_len;
-	int err;
+	int res;
+	int i;
 
 	if (!kana || !results) {
 		return -EINVAL;
 	}
 
 	kana_len = char_len(kana);
+	res = -ENOENT;
 
-	if ((err = get_i_adjective_conjugation(kana, kana_len, results)) >= 0) {
-		/* word could be an い-adjective */
+	for (i = 0; _deconjugators[i].func; i++) {
+		int err;
+
+		if ((err = _deconjugators[i].func(kana, kana_len, results)) < 0) {
 #if DEBUG_JAPANESE
-		fprintf(stderr, "get_i_adjective() = %d\n", err);
+			fprintf(stderr, "%s() = %d\n", _deconjugators[i].name, err);
 #endif /* DEBUG_JAPANESE */
-		return 0;
+			if (err != -ENOMEM) {
+				res = err;
+				break;
+			}
+		} else {
+			res = 0;
+		}
 	}
 
-	return err;
+	return res;
+
 }
