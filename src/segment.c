@@ -181,7 +181,10 @@ int segment_get_input(segment_t *segment, char *dst, const size_t dst_size)
 
 int segment_get_input_decorated(segment_t *segment, const int selected, const int cursor_pos, char **dst)
 {
-	static const char cursor[] = "<span foreground=\"grey\">_</span>";
+	static const char cursor[] = "<span foreground=\"red\">_</span>";
+	static const char lbracket[] = "<span foreground=\"#3ae926\">[</span>";
+	static const char rbracket[] = "<span foreground=\"#3ae926\">]</span>";
+
 	string_t *input;
 	string_t *escape;
 	int err;
@@ -194,7 +197,7 @@ int segment_get_input_decorated(segment_t *segment, const int selected, const in
 	}
 
 	if (selected &&
-	    (err = string_append_utf8(input, "[", 1)) < 0) {
+	    (err = string_append_utf8(input, lbracket, strlen(lbracket))) < 0) {
 		goto cleanup;
 	}
 
@@ -284,7 +287,7 @@ int segment_get_input_decorated(segment_t *segment, const int selected, const in
 			}
 		}
 
-		if ((err = string_append_utf8(input, "]", 1)) < 0) {
+		if ((err = string_append_utf8(input, rbracket, strlen(rbracket))) < 0) {
 			goto cleanup;
 		}
 	}
