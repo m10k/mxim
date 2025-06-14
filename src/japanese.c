@@ -157,6 +157,184 @@ static const char_t *_ii_adj_suffixes[] = {
 	_suffix_yoku, _suffix_yosasou, NULL
 };
 
+static const char_t _suffix_suru[] = {
+	CHAR_JA_SU, CHAR_JA_RU, CHAR_INVALID
+};
+static const char_t _suffix_sinai[] = {
+	CHAR_JA_SI, CHAR_JA_NA, CHAR_JA_I, CHAR_INVALID
+};
+static const char_t _suffix_sita[] = {
+	CHAR_JA_SI, CHAR_JA_TA, CHAR_INVALID
+};
+static const char_t _suffix_sinakatta[] = {
+	CHAR_JA_SI, CHAR_JA_NA, CHAR_JA_KA, CHAR_JA_tu, CHAR_JA_TA, CHAR_INVALID
+};
+
+static const char_t _suffix_dekiru[] = {
+	CHAR_JA_DE, CHAR_JA_KI, CHAR_JA_RU, CHAR_INVALID
+};
+static const char_t _suffix_dekinai[] = {
+	CHAR_JA_DE, CHAR_JA_KI, CHAR_JA_NA, CHAR_JA_I, CHAR_INVALID
+};
+static const char_t _suffix_dekite[] = {
+	CHAR_JA_DE, CHAR_JA_KI, CHAR_JA_TE, CHAR_INVALID
+};
+static const char_t _suffix_dekinaku[] = {
+	CHAR_JA_DE, CHAR_JA_KI, CHAR_JA_NA, CHAR_JA_KU, CHAR_INVALID
+};
+static const char_t _suffix_dekinakute[] = {
+	CHAR_JA_DE, CHAR_JA_KI, CHAR_JA_NA, CHAR_JA_KU, CHAR_JA_TE, CHAR_INVALID
+};
+
+static const char_t _suffix_dekita[] = {
+	CHAR_JA_DE, CHAR_JA_KI, CHAR_JA_TA, CHAR_INVALID
+};
+static const char_t _suffix_dekinakatta[] = {
+	CHAR_JA_DE, CHAR_JA_KI, CHAR_JA_NA, CHAR_JA_KA, CHAR_JA_tu, CHAR_JA_TA, CHAR_INVALID
+};
+
+static const char_t _suffix_sareru[] = {
+	CHAR_JA_SA, CHAR_JA_RE, CHAR_JA_RU, CHAR_INVALID
+};
+static const char_t _suffix_sarenai[] = {
+	CHAR_JA_SA, CHAR_JA_RE, CHAR_JA_NA, CHAR_JA_I, CHAR_INVALID
+};
+static const char_t _suffix_sarete[] = {
+	CHAR_JA_SA, CHAR_JA_RE, CHAR_JA_TE, CHAR_INVALID
+};
+static const char_t _suffix_sarenaku[] = {
+	CHAR_JA_SA, CHAR_JA_RE, CHAR_JA_NA, CHAR_JA_KU, CHAR_INVALID
+};
+static const char_t _suffix_sarenakute[] = {
+	CHAR_JA_SA, CHAR_JA_RE, CHAR_JA_NA, CHAR_JA_KU, CHAR_JA_TE, CHAR_INVALID
+};
+static const char_t _suffix_sareta[] = {
+	CHAR_JA_SA, CHAR_JA_RE, CHAR_JA_TA, CHAR_INVALID
+};
+static const char_t _suffix_sarenakatta[] = {
+	CHAR_JA_SA, CHAR_JA_RE, CHAR_JA_NA, CHAR_JA_KA, CHAR_JA_tu, CHAR_JA_TA, CHAR_INVALID
+};
+
+static const char_t _suffix_saseru[] = {
+	CHAR_JA_SA, CHAR_JA_SE, CHAR_JA_RU, CHAR_INVALID
+};
+static const char_t _suffix_sasenai[] = {
+	CHAR_JA_SA, CHAR_JA_SE, CHAR_JA_NA, CHAR_JA_I, CHAR_INVALID
+};
+static const char_t _suffix_sasete[] = {
+	CHAR_JA_SA, CHAR_JA_SE, CHAR_JA_TE, CHAR_INVALID
+};
+static const char_t _suffix_sasenaku[] = {
+	CHAR_JA_SA, CHAR_JA_SE, CHAR_JA_NA, CHAR_JA_KU, CHAR_INVALID
+};
+static const char_t _suffix_sasenakute[] = {
+	CHAR_JA_SA, CHAR_JA_SE, CHAR_JA_NA, CHAR_JA_KU, CHAR_JA_TE, CHAR_INVALID
+};
+static const char_t _suffix_saseta[] = {
+	CHAR_JA_SA, CHAR_JA_SE, CHAR_JA_TA, CHAR_INVALID
+};
+static const char_t _suffix_sasenakatta[] = {
+	CHAR_JA_SA, CHAR_JA_SE, CHAR_JA_NA, CHAR_JA_KA, CHAR_JA_tu, CHAR_JA_TA, CHAR_INVALID
+};
+
+static const char_t _suffix_saserareru[] = {
+	CHAR_JA_SA, CHAR_JA_SE, CHAR_JA_RA, CHAR_JA_RE, CHAR_JA_RU, CHAR_INVALID
+};
+static const char_t _suffix_saserarenai[] = {
+	CHAR_JA_SA, CHAR_JA_SE, CHAR_JA_RA, CHAR_JA_RE, CHAR_JA_NA, CHAR_JA_I, CHAR_INVALID
+};
+static const char_t _suffix_saserarete[] = {
+	CHAR_JA_SA, CHAR_JA_SE, CHAR_JA_RA, CHAR_JA_RE, CHAR_JA_TE, CHAR_INVALID
+};
+static const char_t _suffix_saserarenaku[] = {
+	CHAR_JA_SA, CHAR_JA_SE, CHAR_JA_RA, CHAR_JA_RE, CHAR_JA_NA, CHAR_JA_KU, CHAR_INVALID
+};
+static const char_t _suffix_saserarenakute[] = {
+	CHAR_JA_SA, CHAR_JA_SE, CHAR_JA_RA, CHAR_JA_RE, CHAR_JA_NA, CHAR_JA_KU, CHAR_JA_TE, CHAR_INVALID
+};
+static const char_t _suffix_saserareta[] = {
+	CHAR_JA_SA, CHAR_JA_SE, CHAR_JA_RA, CHAR_JA_RE, CHAR_JA_TA, CHAR_INVALID
+};
+static const char_t _suffix_saserarenakatta[] = {
+	CHAR_JA_SA, CHAR_JA_SE, CHAR_JA_RA, CHAR_JA_RE, CHAR_JA_NA, CHAR_JA_KA, CHAR_JA_tu, CHAR_JA_TA, CHAR_INVALID
+};
+
+static const char_t _suffix_siyou[] = {
+	CHAR_JA_SI, CHAR_JA_YO, CHAR_JA_U, CHAR_INVALID
+};
+static const char_t _suffix_surumai[] = {
+	CHAR_JA_SU, CHAR_JA_RU, CHAR_JA_MA, CHAR_JA_I, CHAR_INVALID
+};
+static const char_t _suffix_siro[] = {
+	CHAR_JA_SI, CHAR_JA_RO, CHAR_INVALID
+};
+static const char_t _suffix_suruna[] = {
+	CHAR_JA_SU, CHAR_JA_RU, CHAR_JA_NA, CHAR_INVALID
+};
+static const char_t _suffix_site[] = {
+	CHAR_JA_SI, CHAR_JA_TE, CHAR_INVALID
+};
+static const char_t _suffix_sinaide[] = {
+	CHAR_JA_SI, CHAR_JA_NA, CHAR_JA_I, CHAR_JA_DE, CHAR_INVALID
+};
+
+static const char_t _suffix_simasu[] = {
+	CHAR_JA_SI, CHAR_JA_MA, CHAR_JA_SU, CHAR_INVALID
+};
+static const char_t _suffix_simasen[] = {
+	CHAR_JA_SI, CHAR_JA_MA, CHAR_JA_SE, CHAR_JA_N, CHAR_INVALID
+};
+static const char_t _suffix_simasita[] = {
+	CHAR_JA_SI, CHAR_JA_MA, CHAR_JA_SI, CHAR_JA_TA, CHAR_INVALID
+};
+static const char_t _suffix_simasendesita[] = {
+	CHAR_JA_SI, CHAR_JA_MA, CHAR_JA_SE, CHAR_JA_N, CHAR_JA_DE, CHAR_JA_SI, CHAR_JA_TA, CHAR_INVALID
+};
+static const char_t _suffix_simasite[] = {
+	CHAR_JA_SI, CHAR_JA_MA, CHAR_JA_SI, CHAR_JA_TE, CHAR_INVALID
+};
+static const char_t _suffix_simasendesite[] = {
+	CHAR_JA_SI, CHAR_JA_MA, CHAR_JA_SE, CHAR_JA_N, CHAR_JA_DE, CHAR_JA_SI, CHAR_JA_TE, CHAR_INVALID
+};
+static const char_t _suffix_simasiyou[] = {
+	CHAR_JA_SI, CHAR_JA_MA, CHAR_JA_SI, CHAR_JA_yo, CHAR_JA_U, CHAR_INVALID
+};
+
+static const char_t _suffix_si[] = {
+	CHAR_JA_SI, CHAR_INVALID
+};
+static const char_t _suffix_subeki[] = {
+	CHAR_JA_SU, CHAR_JA_BE, CHAR_JA_KI, CHAR_INVALID
+};
+
+static const char_t *_suru_verb_suffixes[] = {
+	/* Longer suffixes need to be matched first */
+	_suffix_simasu,     _suffix_simasen,
+	_suffix_simasita,   _suffix_simasendesita,
+	_suffix_simasite,   _suffix_simasendesite,
+	_suffix_simasiyou,
+	_suffix_suru,       _suffix_sinai,
+	_suffix_siyou,      _suffix_surumai,
+	_suffix_siro,       _suffix_suruna,
+	_suffix_site,       _suffix_sinaide,
+	_suffix_sita,       _suffix_sinakatta,
+	_suffix_dekiru,     _suffix_dekinai,
+	_suffix_dekite,     _suffix_dekinaku,        _suffix_dekinakute,
+	_suffix_dekita,     _suffix_dekinakatta,
+	_suffix_sareru,     _suffix_sarenai,
+	_suffix_sarete,     _suffix_sarenaku,        _suffix_sarenakute,
+	_suffix_sareta,     _suffix_sarenakatta,
+	_suffix_saseru,     _suffix_sasenai,
+	_suffix_sasete,     _suffix_sasenaku,        _suffix_sasenakute,
+	_suffix_saseta,     _suffix_sasenakatta,
+	_suffix_saserareru, _suffix_saserarenai,
+	_suffix_saserarete, _suffix_saserarenaku,    _suffix_saserarenakute,
+	_suffix_saserareta, _suffix_saserarenakatta,
+	_suffix_si,
+	_suffix_subeki,
+	NULL
+};
+
 static int endswith_oneof(const char_t *str, const int str_len,
                           const char_t **suffixes)
 {
@@ -260,6 +438,13 @@ static int probe_conjugation_by_suffix_match(const char_t *kana, const int kana_
 	return 0;
 }
 
+static int get_suru_verb_conjugation(const char_t *kana, const size_t kana_len,
+                                     conjugation_t ***results)
+{
+	return probe_conjugation_by_suffix_match(kana, kana_len, _suru_verb_suffixes,
+	                                         JA_TYPE_VERB_SURU, NULL, 0, results);
+}
+
 static int get_i_adjective_conjugation(const char_t *kana, const size_t kana_len,
                                        conjugation_t ***results)
 {
@@ -307,6 +492,9 @@ static const struct {
 		.func = get_i_adjective_conjugation,
 		.name = "get_i_adjective_conjugation"
 	}, {
+		.func = get_suru_verb_conjugation,
+		.name = "get_suru_verb_conjugation"
+	}, {
 		.func = NULL,
 		.name = NULL
 	}
@@ -337,6 +525,7 @@ int japanese_unconjugate(const char_t *kana, conjugation_t ***results)
 				break;
 			}
 		} else {
+			fprintf(stderr, "%s() = %d\n", _deconjugators[i].name, err);
 			res = 0;
 		}
 	}
