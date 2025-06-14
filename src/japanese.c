@@ -190,6 +190,7 @@ static int probe_conjugation_by_suffix_match(const char_t *kana, const int kana_
 {
 	int suffix_idx;
 	int suffix_len;
+	int dict_suffix_len_eff;
 	int stem_len;
 	int dict_len;
 	char_t *dict_form;
@@ -205,9 +206,10 @@ static int probe_conjugation_by_suffix_match(const char_t *kana, const int kana_
 		return 0;
 	}
 	suffix_len = char_len(suffixes[suffix_idx]);
+	dict_suffix_len_eff = dict_suffix ? char_len(dict_suffix) : 0;
 	stem_len = kana_len - suffix_len;
 
-	if ((dict_len = char_concat(&dict_form, kana, stem_len, dict_suffix, char_len(dict_suffix))) < 0) {
+	if ((dict_len = char_concat(&dict_form, kana, stem_len, dict_suffix, dict_suffix_len_eff)) < 0) {
 		fprintf(stderr, "char_concat() = %d\n", dict_len);
 		return dict_len;
 	}
