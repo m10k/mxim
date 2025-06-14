@@ -181,7 +181,7 @@ int segment_get_input(segment_t *segment, char *dst, const size_t dst_size)
 
 int segment_get_input_decorated(segment_t *segment, const int selected, const int cursor_pos, char **dst)
 {
-	static const char cursor[] = "<span foreground=\"grey\">⇱</span>";
+	static const char cursor[] = "<span foreground=\"grey\">_</span>";
 	string_t *input;
 	string_t *escape;
 	int err;
