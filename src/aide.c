@@ -327,12 +327,10 @@ static int aide_unconjugate(const char_t *conjugated, conjugation_t ***conjugati
 	conjugation_t *conjugation;
 	int err;
 
-	if ((err = japanese_unconjugate(conjugated, conjugations)) < 0) {
-		/* fall back to null conjugation */
-		if ((err = conjugation_new(&conjugation, conjugated, 0, NULL, 0)) < 0) {
-			return err;
-		}
+	japanese_unconjugate(conjugated, conjugations);
 
+	/* Finally, add a null conjugation */
+	if (!(err = conjugation_new(&conjugation, conjugated, 0, NULL, 0))) {
 		if ((err = array_add((void***)conjugations, conjugation)) < 0) {
 			conjugation_free(&conjugation);
 		}
