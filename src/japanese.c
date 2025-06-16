@@ -381,7 +381,7 @@ static int probe_conjugation_by_suffix_match(const char_t *kana, const int kana_
 
 	if ((suffix_idx = endswith_oneof(kana, kana_len, suffixes)) < 0) {
 		/* this is fine, don't return an error */
-		return 0;
+		return -ENOENT;
 	}
 	suffix_len = char_len(suffixes[suffix_idx]);
 	dict_suffix_len_eff = dict_suffix ? char_len(dict_suffix) : 0;
@@ -475,10 +475,19 @@ static int get_i_adjective_conjugation(const char_t *kana, const size_t kana_len
 	int err;
 	int i;
 
-	for (i = err = 0; err >= 0 && _probes[i].input_suffixes; i++) {
-		err = probe_conjugation_by_suffix_match(kana, kana_len, _probes[i].input_suffixes,
-		                                        _probes[i].type, _probes[i].dict_suffix, 1,
-		                                        results);
+	for (i = 0, err = -ENOENT; _probes[i].input_suffixes; i++) {
+		int result;
+
+		result = probe_conjugation_by_suffix_match(kana, kana_len, _probes[i].input_suffixes,
+		                                           _probes[i].type, _probes[i].dict_suffix, 1,
+		                                           results);
+
+		if (result == 0) {
+			err = 0;
+		} else if (result < 0 && result != -ENOENT) {
+			err = result;
+			break;
+		}
 	}
 
 	return err;
@@ -503,7 +512,7 @@ static const struct {
 int japanese_unconjugate(const char_t *kana, conjugation_t ***results)
 {
 	int kana_len;
-	int res;
+	int err;
 	int i;
 
 	if (!kana || !results) {
@@ -511,25 +520,24 @@ int japanese_unconjugate(const char_t *kana, conjugation_t ***results)
 	}
 
 	kana_len = char_len(kana);
-	res = -ENOENT;
+	err = -ENOENT;
 
 	for (i = 0; _deconjugators[i].func; i++) {
-		int err;
+		int result;
 
-		if ((err = _deconjugators[i].func(kana, kana_len, results)) < 0) {
+		result = _deconjugators[i].func(kana, kana_len, results);
 #if DEBUG_JAPANESE
-			fprintf(stderr, "%s() = %d\n", _deconjugators[i].name, err);
+		fprintf(stderr, "%s() = %d\n", _deconjugators[i].name, err);
 #endif /* DEBUG_JAPANESE */
-			if (err != -ENOMEM) {
-				res = err;
-				break;
-			}
-		} else {
-			fprintf(stderr, "%s() = %d\n", _deconjugators[i].name, err);
-			res = 0;
+
+		if (result == 0) {
+			err = 0;
+		} else if (err < 0 && err != -ENOENT) {
+			err = result;
+			break;
 		}
 	}
 
-	return res;
+	return err;
 
 }
