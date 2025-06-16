@@ -856,7 +856,7 @@ static int _get_dict_candidates(struct array *array, dict_candidate_t ***out)
 		return -EOVERFLOW;
 	}
 
-	if (!(candidates = malloc((num_items + 1) * sizeof(*candidates)))) {
+	if (!(candidates = calloc(num_items + 1, sizeof(*candidates)))) {
 		return -ENOMEM;
 	}
 
