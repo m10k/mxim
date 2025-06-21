@@ -28,12 +28,17 @@ typedef struct trie trie_t;
 
 #define TRIE_LOOKUP_EXACT   0
 #define TRIE_LOOKUP_PREDICT 1
+#define TRIE_LOOKUP_COLLECT 2
 
 int trie_new(trie_t **trie);
 int trie_free(trie_t **trie);
 
 int trie_insert(trie_t *trie, const char_t *key, const void **values, const size_t num_values);
+int trie_insert_reverse(trie_t *trie, const char_t *key, const int key_len,
+                        const void **values, const size_t num_values);
 int trie_add_values(trie_t *trie, const void **values, const size_t num_values);
 int trie_get_values(trie_t *trie, const char_t *key, const int mode, void ***values);
+int trie_get_values_reverse(trie_t *trie, const char_t *key, const int key_len,
+                            const int mode, void ***values);
 
 #endif /* TRIE_H */

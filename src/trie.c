@@ -78,6 +78,33 @@ int trie_insert(trie_t *trie, const char_t *key, const void **values, const size
 	return trie_add_values(trie, values, num_values);
 }
 
+int trie_insert_reverse(trie_t *trie, const char_t *key, const int key_len,
+                        const void **values, const size_t num_values)
+{
+	char_t idx;
+
+	if (!trie || !key || key_len < 0 || !values || !num_values) {
+		return -EINVAL;
+	}
+
+	if (key_len == 0) {
+		return trie_add_values(trie, values, num_values);
+	}
+
+	idx = key[key_len - 1];
+
+	if (!trie->children[idx]) {
+		int err;
+
+		if ((err = trie_new(&trie->children[idx])) < 0) {
+			return err;
+		}
+	}
+
+	return trie_insert_reverse(trie->children[idx], key, key_len - 1,
+	                           values, num_values);
+}
+
 int trie_add_values(trie_t *trie, const void **values, const size_t num_values)
 {
 	size_t new_num_values;
@@ -158,4 +185,34 @@ int trie_get_values(trie_t *trie, const char_t *key, const int mode, void ***val
 	}
 
 	return 0;
+}
+
+int trie_get_values_reverse(trie_t *trie, const char_t *key, const int key_len,
+                            const int mode, void ***values)
+{
+	char_t idx;
+
+	if (!trie || !key || !values) {
+		return -EINVAL;
+	}
+
+	if (mode == TRIE_LOOKUP_COLLECT) {
+		/* Pick up everything we find along the way */
+		int err;
+
+		if ((err = _trie_append_to_array(trie, values)) < 0) {
+			return err;
+		}
+	} else if (key_len == 0) {
+		/* Otherwise, pick up only if have matched the entire search key */
+		return _trie_append_to_array(trie, values);
+	}
+
+	idx = key[key_len - 1];
+
+	if (!trie->children[idx]) {
+		return 0;
+	}
+
+	return trie_get_values_reverse(trie->children[idx], key, key_len - 1, mode, values);
 }
