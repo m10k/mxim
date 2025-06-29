@@ -191,28 +191,36 @@ int trie_get_values_reverse(trie_t *trie, const char_t *key, const int key_len,
                             const int mode, void ***values)
 {
 	char_t idx;
+	int num_values;
+	int child_values;
 
 	if (!trie || !key || !values) {
 		return -EINVAL;
 	}
 
-	if (mode == TRIE_LOOKUP_COLLECT) {
-		/* Pick up everything we find along the way */
-		int err;
+	num_values = 0;
 
-		if ((err = _trie_append_to_array(trie, values)) < 0) {
-			return err;
+	if (key_len == 0 || mode == TRIE_LOOKUP_COLLECT) {
+		/*
+		 * Pick up values in the current node if the entire search key
+		 * was matched, or the caller wants us to pick up everything
+		 * along the way.
+		 */
+		num_values = _trie_append_to_array(trie, values);
+
+		if (num_values < 0 || key_len == 0) {
+			return num_values;
 		}
-	} else if (key_len == 0) {
-		/* Otherwise, pick up only if have matched the entire search key */
-		return _trie_append_to_array(trie, values);
 	}
 
 	idx = key[key_len - 1];
 
 	if (!trie->children[idx]) {
-		return 0;
+		return num_values;
 	}
 
-	return trie_get_values_reverse(trie->children[idx], key, key_len - 1, mode, values);
+	child_values = trie_get_values_reverse(trie->children[idx], key, key_len - 1,
+	                                       mode, values);
+
+	return num_values + (child_values < 0 ? 0 : child_values);
 }
