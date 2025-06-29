@@ -192,7 +192,6 @@ int trie_get_values_reverse(trie_t *trie, const char_t *key, const int key_len,
 {
 	char_t idx;
 	int num_values;
-	int child_values;
 
 	if (!trie || !key || !values) {
 		return -EINVAL;
@@ -219,8 +218,6 @@ int trie_get_values_reverse(trie_t *trie, const char_t *key, const int key_len,
 		return num_values;
 	}
 
-	child_values = trie_get_values_reverse(trie->children[idx], key, key_len - 1,
-	                                       mode, values);
-
-	return num_values + (child_values < 0 ? 0 : child_values);
+	return trie_get_values_reverse(trie->children[idx], key, key_len - 1,
+	                               mode, values);
 }
