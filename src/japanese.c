@@ -1,6 +1,7 @@
 #include "array.h"
 #include "char.h"
 #include "conjugation.h"
+#include "trie.h"
 #include "japanese.h"
 #include <assert.h>
 #include <errno.h>
@@ -8,536 +9,403 @@
 #include <stdio.h>
 #include <string.h>
 
-#define A 0
-#define I 1
-#define U 2
-#define E 3
-#define O 4
+struct conjugation_data {
+	/*
+	 * To convert an input to dictionary form, trim `conj.len` bytes and
+	 * add `dict.suffix`. To convert the dictionary form back to the input,
+	 * trim `dict.len` bytes and add `conj.suffix`. If `irregular.dict` is
+	 * not NULL, use that as the dictionary form.
+	 */
+	struct {
+		char_t *suffix;
+		int len;
+	} conj;
 
-static const char_t _a_retsu[] = {
-	CHAR_JA_WA, CHAR_JA_NA, CHAR_JA_TA, CHAR_JA_SA, CHAR_JA_KA,
-	CHAR_JA_GA, CHAR_JA_RA, CHAR_JA_HA, CHAR_JA_BA, CHAR_JA_MA, CHAR_INVALID
-};
-static const char_t _i_retsu[] = {
-	CHAR_JA_I, CHAR_JA_NI, CHAR_JA_TI, CHAR_JA_SI, CHAR_JA_KI,
-	CHAR_JA_GI, CHAR_JA_RI, CHAR_JA_HI, CHAR_JA_BI, CHAR_JA_MI, CHAR_INVALID
-};
-static const char_t _u_retsu[] = {
-	CHAR_JA_U, CHAR_JA_NU, CHAR_JA_TU, CHAR_JA_SU, CHAR_JA_KU,
-	CHAR_JA_GU, CHAR_JA_RU, CHAR_JA_HU, CHAR_JA_BU, CHAR_JA_MU, CHAR_INVALID
-};
-static const char_t _e_retsu[] = {
-	CHAR_JA_E, CHAR_JA_NE, CHAR_JA_TE, CHAR_JA_SE, CHAR_JA_KE,
-	CHAR_JA_GE, CHAR_JA_RE, CHAR_JA_HE, CHAR_JA_BE, CHAR_JA_ME, CHAR_INVALID
-};
-static const char_t _o_retsu[] = {
-	CHAR_JA_O, CHAR_JA_NO, CHAR_JA_TO, CHAR_JA_SO, CHAR_JA_KO,
-	CHAR_JA_GO, CHAR_JA_RO, CHAR_JA_HO, CHAR_JA_BO, CHAR_JA_MO, CHAR_INVALID
+	struct {
+		char_t *suffix;
+		int len;
+	} dict;
+
+	struct {
+		char_t *dict;
+		int len;
+	} irregular;
+
+	int type;
 };
 
-static const char_t *_retsu[] = {
-	[A] = _a_retsu,
-	[I] = _i_retsu,
-	[U] = _u_retsu,
-	[E] = _e_retsu,
-	[O] = _o_retsu
+struct conjugation_table_entry {
+	char *conj;  /* The index for the trie, if `match` is NULL */
+	char *dict;
+	int type;
+	char *match; /* The index for the trie */
+	char *irregular;
 };
 
-static int _kana_in_retsu(const char_t kana, const int retsu)
+int cdata_free(struct conjugation_data **cdata)
 {
-	int result;
-	int idx;
-
-	if (retsu < A || retsu > O) {
+	if (!cdata) {
 		return -EINVAL;
 	}
 
-	result = -ENOENT;
+	free((*cdata)->conj.suffix);
+	(*cdata)->conj.suffix = NULL;
+	free((*cdata)->dict.suffix);
+	(*cdata)->dict.suffix = NULL;
+	free((*cdata)->irregular.dict);
+	(*cdata)->irregular.dict = NULL;
+	free(*cdata);
+	*cdata = NULL;
 
-	for (idx = 0; _retsu[retsu][idx] != CHAR_INVALID; idx++) {
-		if (_retsu[retsu][idx] == kana) {
-			result = idx;
-			break;
-		}
-	}
-
-	return result;
+	return 0;
 }
 
-static int _kana_index(const char_t chr)
+static int ctable_get_key(const struct conjugation_table_entry *ctable, char_t **key)
 {
-	int result;
-	int retsu;
-
-	result = -ENOENT;
-
-	for (retsu = A; retsu <= O; retsu++) {
-		int idx;
-
-		if ((idx = _kana_in_retsu(chr, retsu)) >= 0) {
-			result = idx;
-			break;
-		}
-	}
-
-	return result;
-}
-
-static char_t _convert_kana(const char_t chr, const int retsu)
-{
-	int idx;
-
-	assert(retsu >= A);
-	assert(retsu <= O);
-
-	if ((idx = _kana_index(chr)) < 0) {
-		return CHAR_INVALID;
-	}
-
-	return _retsu[retsu][idx];
-}
-
-static const char_t _suffix_karou[] = {
-	CHAR_JA_KA, CHAR_JA_RO, CHAR_JA_U, CHAR_INVALID
-};
-static const char_t _suffix_i[] = {
-	CHAR_JA_I, CHAR_INVALID
-};
-static const char_t _suffix_katta[] = {
-	CHAR_JA_KA, CHAR_JA_tu, CHAR_JA_TA, CHAR_INVALID
-};
-static const char_t _suffix_kereba[] = {
-	CHAR_JA_KE, CHAR_JA_RE, CHAR_JA_BA, CHAR_INVALID
-};
-static const char_t _suffix_kattara[] = {
-	CHAR_JA_KA, CHAR_JA_tu, CHAR_JA_TA, CHAR_JA_RA, CHAR_INVALID
-};
-static const char_t _suffix_ku[] = {
-	CHAR_JA_KU, CHAR_INVALID
-};
-static const char_t _suffix_sou[] = {
-	CHAR_JA_SO, CHAR_JA_U, CHAR_INVALID
-};
-
-static const char_t _suffix_ii[] = {
-	CHAR_JA_I, CHAR_JA_I, CHAR_INVALID
-};
-static const char_t _suffix_yokarou[] = {
-	CHAR_JA_YO, CHAR_JA_KA, CHAR_JA_RO, CHAR_JA_U, CHAR_INVALID
-};
-static const char_t _suffix_yoi[] = {
-	CHAR_JA_YO, CHAR_JA_I, CHAR_INVALID
-};
-static const char_t _suffix_yokatta[] = {
-	CHAR_JA_YO, CHAR_JA_KA, CHAR_JA_tu, CHAR_JA_TA, CHAR_INVALID
-};
-static const char_t _suffix_yokereba[] = {
-	CHAR_JA_YO, CHAR_JA_KE, CHAR_JA_RE, CHAR_JA_BA, CHAR_INVALID
-};
-static const char_t _suffix_yokattara[] = {
-	CHAR_JA_YO, CHAR_JA_KA, CHAR_JA_tu, CHAR_JA_TA, CHAR_JA_RA, CHAR_INVALID
-};
-static const char_t _suffix_yoku[] = {
-	CHAR_JA_YO, CHAR_JA_KU, CHAR_INVALID
-};
-static const char_t _suffix_yosasou[] = {
-	CHAR_JA_YO, CHAR_JA_SA, CHAR_JA_SO, CHAR_JA_U, CHAR_INVALID
-};
-
-static const char_t *_i_adj_suffixes[] = {
-	_suffix_karou, _suffix_i, _suffix_katta, _suffix_kereba, _suffix_kattara, _suffix_ku,
-	_suffix_sou, NULL
-};
-static const char_t *_yoi_adj_suffixes[] = {
-	_suffix_yokarou, _suffix_yoi, _suffix_yokatta, _suffix_yokereba, _suffix_yokattara,
-	_suffix_yoku, _suffix_yosasou, NULL
-};
-static const char_t *_ii_adj_suffixes[] = {
-	_suffix_yokarou, _suffix_ii, _suffix_yokatta, _suffix_yokereba, _suffix_yokattara,
-	_suffix_yoku, _suffix_yosasou, NULL
-};
-
-static const char_t _suffix_suru[] = {
-	CHAR_JA_SU, CHAR_JA_RU, CHAR_INVALID
-};
-static const char_t _suffix_sinai[] = {
-	CHAR_JA_SI, CHAR_JA_NA, CHAR_JA_I, CHAR_INVALID
-};
-static const char_t _suffix_sita[] = {
-	CHAR_JA_SI, CHAR_JA_TA, CHAR_INVALID
-};
-static const char_t _suffix_sinakatta[] = {
-	CHAR_JA_SI, CHAR_JA_NA, CHAR_JA_KA, CHAR_JA_tu, CHAR_JA_TA, CHAR_INVALID
-};
-
-static const char_t _suffix_dekiru[] = {
-	CHAR_JA_DE, CHAR_JA_KI, CHAR_JA_RU, CHAR_INVALID
-};
-static const char_t _suffix_dekinai[] = {
-	CHAR_JA_DE, CHAR_JA_KI, CHAR_JA_NA, CHAR_JA_I, CHAR_INVALID
-};
-static const char_t _suffix_dekite[] = {
-	CHAR_JA_DE, CHAR_JA_KI, CHAR_JA_TE, CHAR_INVALID
-};
-static const char_t _suffix_dekinaku[] = {
-	CHAR_JA_DE, CHAR_JA_KI, CHAR_JA_NA, CHAR_JA_KU, CHAR_INVALID
-};
-static const char_t _suffix_dekinakute[] = {
-	CHAR_JA_DE, CHAR_JA_KI, CHAR_JA_NA, CHAR_JA_KU, CHAR_JA_TE, CHAR_INVALID
-};
-
-static const char_t _suffix_dekita[] = {
-	CHAR_JA_DE, CHAR_JA_KI, CHAR_JA_TA, CHAR_INVALID
-};
-static const char_t _suffix_dekinakatta[] = {
-	CHAR_JA_DE, CHAR_JA_KI, CHAR_JA_NA, CHAR_JA_KA, CHAR_JA_tu, CHAR_JA_TA, CHAR_INVALID
-};
-
-static const char_t _suffix_sareru[] = {
-	CHAR_JA_SA, CHAR_JA_RE, CHAR_JA_RU, CHAR_INVALID
-};
-static const char_t _suffix_sarenai[] = {
-	CHAR_JA_SA, CHAR_JA_RE, CHAR_JA_NA, CHAR_JA_I, CHAR_INVALID
-};
-static const char_t _suffix_sarete[] = {
-	CHAR_JA_SA, CHAR_JA_RE, CHAR_JA_TE, CHAR_INVALID
-};
-static const char_t _suffix_sarenaku[] = {
-	CHAR_JA_SA, CHAR_JA_RE, CHAR_JA_NA, CHAR_JA_KU, CHAR_INVALID
-};
-static const char_t _suffix_sarenakute[] = {
-	CHAR_JA_SA, CHAR_JA_RE, CHAR_JA_NA, CHAR_JA_KU, CHAR_JA_TE, CHAR_INVALID
-};
-static const char_t _suffix_sareta[] = {
-	CHAR_JA_SA, CHAR_JA_RE, CHAR_JA_TA, CHAR_INVALID
-};
-static const char_t _suffix_sarenakatta[] = {
-	CHAR_JA_SA, CHAR_JA_RE, CHAR_JA_NA, CHAR_JA_KA, CHAR_JA_tu, CHAR_JA_TA, CHAR_INVALID
-};
-
-static const char_t _suffix_saseru[] = {
-	CHAR_JA_SA, CHAR_JA_SE, CHAR_JA_RU, CHAR_INVALID
-};
-static const char_t _suffix_sasenai[] = {
-	CHAR_JA_SA, CHAR_JA_SE, CHAR_JA_NA, CHAR_JA_I, CHAR_INVALID
-};
-static const char_t _suffix_sasete[] = {
-	CHAR_JA_SA, CHAR_JA_SE, CHAR_JA_TE, CHAR_INVALID
-};
-static const char_t _suffix_sasenaku[] = {
-	CHAR_JA_SA, CHAR_JA_SE, CHAR_JA_NA, CHAR_JA_KU, CHAR_INVALID
-};
-static const char_t _suffix_sasenakute[] = {
-	CHAR_JA_SA, CHAR_JA_SE, CHAR_JA_NA, CHAR_JA_KU, CHAR_JA_TE, CHAR_INVALID
-};
-static const char_t _suffix_saseta[] = {
-	CHAR_JA_SA, CHAR_JA_SE, CHAR_JA_TA, CHAR_INVALID
-};
-static const char_t _suffix_sasenakatta[] = {
-	CHAR_JA_SA, CHAR_JA_SE, CHAR_JA_NA, CHAR_JA_KA, CHAR_JA_tu, CHAR_JA_TA, CHAR_INVALID
-};
-
-static const char_t _suffix_saserareru[] = {
-	CHAR_JA_SA, CHAR_JA_SE, CHAR_JA_RA, CHAR_JA_RE, CHAR_JA_RU, CHAR_INVALID
-};
-static const char_t _suffix_saserarenai[] = {
-	CHAR_JA_SA, CHAR_JA_SE, CHAR_JA_RA, CHAR_JA_RE, CHAR_JA_NA, CHAR_JA_I, CHAR_INVALID
-};
-static const char_t _suffix_saserarete[] = {
-	CHAR_JA_SA, CHAR_JA_SE, CHAR_JA_RA, CHAR_JA_RE, CHAR_JA_TE, CHAR_INVALID
-};
-static const char_t _suffix_saserarenaku[] = {
-	CHAR_JA_SA, CHAR_JA_SE, CHAR_JA_RA, CHAR_JA_RE, CHAR_JA_NA, CHAR_JA_KU, CHAR_INVALID
-};
-static const char_t _suffix_saserarenakute[] = {
-	CHAR_JA_SA, CHAR_JA_SE, CHAR_JA_RA, CHAR_JA_RE, CHAR_JA_NA, CHAR_JA_KU, CHAR_JA_TE, CHAR_INVALID
-};
-static const char_t _suffix_saserareta[] = {
-	CHAR_JA_SA, CHAR_JA_SE, CHAR_JA_RA, CHAR_JA_RE, CHAR_JA_TA, CHAR_INVALID
-};
-static const char_t _suffix_saserarenakatta[] = {
-	CHAR_JA_SA, CHAR_JA_SE, CHAR_JA_RA, CHAR_JA_RE, CHAR_JA_NA, CHAR_JA_KA, CHAR_JA_tu, CHAR_JA_TA, CHAR_INVALID
-};
-
-static const char_t _suffix_siyou[] = {
-	CHAR_JA_SI, CHAR_JA_YO, CHAR_JA_U, CHAR_INVALID
-};
-static const char_t _suffix_surumai[] = {
-	CHAR_JA_SU, CHAR_JA_RU, CHAR_JA_MA, CHAR_JA_I, CHAR_INVALID
-};
-static const char_t _suffix_siro[] = {
-	CHAR_JA_SI, CHAR_JA_RO, CHAR_INVALID
-};
-static const char_t _suffix_suruna[] = {
-	CHAR_JA_SU, CHAR_JA_RU, CHAR_JA_NA, CHAR_INVALID
-};
-static const char_t _suffix_site[] = {
-	CHAR_JA_SI, CHAR_JA_TE, CHAR_INVALID
-};
-static const char_t _suffix_sinaide[] = {
-	CHAR_JA_SI, CHAR_JA_NA, CHAR_JA_I, CHAR_JA_DE, CHAR_INVALID
-};
-
-static const char_t _suffix_simasu[] = {
-	CHAR_JA_SI, CHAR_JA_MA, CHAR_JA_SU, CHAR_INVALID
-};
-static const char_t _suffix_simasen[] = {
-	CHAR_JA_SI, CHAR_JA_MA, CHAR_JA_SE, CHAR_JA_N, CHAR_INVALID
-};
-static const char_t _suffix_simasita[] = {
-	CHAR_JA_SI, CHAR_JA_MA, CHAR_JA_SI, CHAR_JA_TA, CHAR_INVALID
-};
-static const char_t _suffix_simasendesita[] = {
-	CHAR_JA_SI, CHAR_JA_MA, CHAR_JA_SE, CHAR_JA_N, CHAR_JA_DE, CHAR_JA_SI, CHAR_JA_TA, CHAR_INVALID
-};
-static const char_t _suffix_simasite[] = {
-	CHAR_JA_SI, CHAR_JA_MA, CHAR_JA_SI, CHAR_JA_TE, CHAR_INVALID
-};
-static const char_t _suffix_simasendesite[] = {
-	CHAR_JA_SI, CHAR_JA_MA, CHAR_JA_SE, CHAR_JA_N, CHAR_JA_DE, CHAR_JA_SI, CHAR_JA_TE, CHAR_INVALID
-};
-static const char_t _suffix_simasiyou[] = {
-	CHAR_JA_SI, CHAR_JA_MA, CHAR_JA_SI, CHAR_JA_yo, CHAR_JA_U, CHAR_INVALID
-};
-
-static const char_t _suffix_si[] = {
-	CHAR_JA_SI, CHAR_INVALID
-};
-static const char_t _suffix_subeki[] = {
-	CHAR_JA_SU, CHAR_JA_BE, CHAR_JA_KI, CHAR_INVALID
-};
-
-static const char_t *_suru_verb_suffixes[] = {
-	/* Longer suffixes need to be matched first */
-	_suffix_simasu,     _suffix_simasen,
-	_suffix_simasita,   _suffix_simasendesita,
-	_suffix_simasite,   _suffix_simasendesite,
-	_suffix_simasiyou,
-	_suffix_suru,       _suffix_sinai,
-	_suffix_siyou,      _suffix_surumai,
-	_suffix_siro,       _suffix_suruna,
-	_suffix_site,       _suffix_sinaide,
-	_suffix_sita,       _suffix_sinakatta,
-	_suffix_dekiru,     _suffix_dekinai,
-	_suffix_dekite,     _suffix_dekinaku,        _suffix_dekinakute,
-	_suffix_dekita,     _suffix_dekinakatta,
-	_suffix_sareru,     _suffix_sarenai,
-	_suffix_sarete,     _suffix_sarenaku,        _suffix_sarenakute,
-	_suffix_sareta,     _suffix_sarenakatta,
-	_suffix_saseru,     _suffix_sasenai,
-	_suffix_sasete,     _suffix_sasenaku,        _suffix_sasenakute,
-	_suffix_saseta,     _suffix_sasenakatta,
-	_suffix_saserareru, _suffix_saserarenai,
-	_suffix_saserarete, _suffix_saserarenaku,    _suffix_saserarenakute,
-	_suffix_saserareta, _suffix_saserarenakatta,
-	_suffix_si,
-	_suffix_subeki,
-	NULL
-};
-
-static int endswith_oneof(const char_t *str, const int str_len,
-                          const char_t **suffixes)
-{
-	int i;
-
-	if (!str || !suffixes) {
+	if (!ctable || !key) {
 		return -EINVAL;
 	}
 
-	for (i = 0; suffixes[i]; i++) {
-		int y;
-
-		y = char_endswith(str, str_len, suffixes[i], char_len(suffixes[i]));
-#if DEBUG_JAPANESE
-		fprintf(stderr, "char_endswith(str, %d, suffixes[%d], %d) == %d\n",
-		        str_len, i, char_len(suffixes[i]), y);
-#endif /* DEBUG_JAPANESE */
-
-		if (y == 0) {
-			return i;
-		}
+	if (ctable->match) {
+		return char_from_utf8(ctable->match, strlen(ctable->match), key);
 	}
 
-	return -ENOENT;
+	return char_from_utf8(ctable->conj, strlen(ctable->conj), key);
 }
 
-static int probe_conjugation_by_suffix_match(const char_t *kana, const int kana_len,
-                                             const char_t **suffixes, const int type,
-                                             const char_t *dict_suffix, const int dict_suffix_len,
-                                             conjugation_t ***results)
+static int cdata_from_ctable_entry(struct conjugation_data **cdata,
+                                   const struct conjugation_table_entry *entry)
 {
-	int suffix_idx;
-	int suffix_len;
-	int dict_suffix_len_eff;
-	int stem_len;
-	int dict_len;
-	char_t *dict_form;
-	conjugation_t *conjugation;
+	struct conjugation_data *data;
+	char *dict_suffix;
 	int err;
 
-	if (!kana || !results || !suffixes) {
+	if (!entry) {
 		return -EINVAL;
 	}
 
-	if ((suffix_idx = endswith_oneof(kana, kana_len, suffixes)) < 0) {
-		/* this is fine, don't return an error */
-		return -ENOENT;
-	}
-	suffix_len = char_len(suffixes[suffix_idx]);
-	dict_suffix_len_eff = dict_suffix ? char_len(dict_suffix) : 0;
-	stem_len = kana_len - suffix_len;
-
-	if ((dict_len = char_concat(&dict_form, kana, stem_len, dict_suffix, dict_suffix_len_eff)) < 0) {
-		fprintf(stderr, "char_concat() = %d\n", dict_len);
-		return dict_len;
+	if (!entry->conj) {
+		return -EBADR;
 	}
 
-#if DEBUG_JAPANESE
-	{
+	if (!(data = calloc(1, sizeof(*data)))) {
+		return -ENOMEM;
+	}
+
+	data->type = entry->type;
+
+	if ((err = char_from_utf8(entry->conj, strlen(entry->conj), &data->conj.suffix)) < 0) {
+		goto cleanup;
+	}
+	data->conj.len = char_len(data->conj.suffix);
+
+	if (entry->irregular) {
+		err = char_from_utf8(entry->irregular, strlen(entry->irregular),
+		                     &data->irregular.dict);
+		if (err < 0) {
+			goto cleanup;
+		}
+		data->irregular.len = char_len(data->irregular.dict);
+	}
+
+	dict_suffix = entry->dict ? entry->dict : "";
+	if ((err = char_from_utf8(dict_suffix, strlen(dict_suffix), &data->dict.suffix)) < 0) {
+		goto cleanup;
+	}
+	data->dict.len = char_len(data->dict.suffix);
+
+cleanup:
+	if (err < 0) {
+		cdata_free(&data);
+	} else {
+		*cdata = data;
+	}
+
+	return err;
+}
+
+static int trie_insert_ctable_entry(trie_t *trie, const struct conjugation_table_entry *entry)
+{
+	struct conjugation_data *cdata;
+	char_t *key;
+	int err;
+
+	cdata = NULL;
+	key = NULL;
+
+	if ((err = ctable_get_key(entry, &key)) < 0) {
+		return err;
+	}
+
+	if ((err = cdata_from_ctable_entry(&cdata, entry)) >= 0) {
+		if ((err = trie_insert_reverse(trie, key, char_len(key), (const void**)&cdata, 1)) < 0) {
+			cdata_free(&cdata);
+		}
+	}
+
+	free(key);
+	return err;
+}
+
+static const struct conjugation_table_entry _conjugation_table[] = {
+	{ "い",           "い", JA_TYPE_ADJ_I },
+	{ "くない",       "い", JA_TYPE_ADJ_I },
+	{ "かった",       "い", JA_TYPE_ADJ_I },
+	{ "くなかった",   "い", JA_TYPE_ADJ_I },
+	{ "かろう",       "い", JA_TYPE_ADJ_I },
+	{ "くなかろう",   "い", JA_TYPE_ADJ_I },
+	{ "ければ",       "い", JA_TYPE_ADJ_I },
+	{ "くなければ",   "い", JA_TYPE_ADJ_I },
+	{ "かったら",     "い", JA_TYPE_ADJ_I },
+	{ "くなかったら", "い", JA_TYPE_ADJ_I },
+	{ "く",           "い", JA_TYPE_ADJ_I },
+	{ "くなく",       "い", JA_TYPE_ADJ_I },
+	{ "くて",         "い", JA_TYPE_ADJ_I },
+	{ "くなくて",     "い", JA_TYPE_ADJ_I },
+	{ "すぎる",       "い", JA_TYPE_ADJ_I },
+	{ "そう",         "い", JA_TYPE_ADJ_I },
+
+	{ "い",           "い", JA_TYPE_ADJ_YOI, "よい" },
+	{ "くない",       "い", JA_TYPE_ADJ_YOI, "よくない" },
+	{ "かった",       "い", JA_TYPE_ADJ_YOI, "よかった" },
+	{ "くなかった",   "い", JA_TYPE_ADJ_YOI, "よくなかった" },
+	{ "かろう",       "い", JA_TYPE_ADJ_YOI, "よかろう" },
+	{ "くなかろう",   "い", JA_TYPE_ADJ_YOI, "よくなかろう" },
+	{ "ければ",       "い", JA_TYPE_ADJ_YOI, "よければ" },
+	{ "くなければ",   "い", JA_TYPE_ADJ_YOI, "よくなければ" },
+	{ "かったら",     "い", JA_TYPE_ADJ_YOI, "よかったら" },
+	{ "くなかったら", "い", JA_TYPE_ADJ_YOI, "よくなかったら" },
+	{ "く",           "い", JA_TYPE_ADJ_YOI, "よく" },
+	{ "くなく",       "い", JA_TYPE_ADJ_YOI, "よくなく" },
+	{ "くて",         "い", JA_TYPE_ADJ_YOI, "よくて" },
+	{ "くなくて",     "い", JA_TYPE_ADJ_YOI, "よくなくて" },
+	{ "すぎる",       "い", JA_TYPE_ADJ_YOI, "よさすぎる" },
+	{ "そう",         "い", JA_TYPE_ADJ_YOI, "よさそう" },
+
+	/* This entry might not be necessary */
+	{ "い",           "い", JA_TYPE_ADJ_YOI, "いい" },
+
+	{ "し",               "", JA_TYPE_VERB_SURU },
+	{ "する",             "", JA_TYPE_VERB_SURU },
+	{ "します",           "", JA_TYPE_VERB_SURU },
+	{ "しない",           "", JA_TYPE_VERB_SURU },
+	{ "しません",         "", JA_TYPE_VERB_SURU },
+	{ "すれば",           "", JA_TYPE_VERB_SURU },
+	{ "しよう",           "", JA_TYPE_VERB_SURU },
+	{ "しましょう",       "", JA_TYPE_VERB_SURU },
+	{ "するまい",         "", JA_TYPE_VERB_SURU },
+	{ "しますまい",       "", JA_TYPE_VERB_SURU },
+	{ "しろ",             "", JA_TYPE_VERB_SURU },
+	{ "しなさい",         "", JA_TYPE_VERB_SURU },
+	{ "するな",           "", JA_TYPE_VERB_SURU },
+	{ "して",             "", JA_TYPE_VERB_SURU },
+	{ "しまして",         "", JA_TYPE_VERB_SURU },
+	{ "しないで",         "", JA_TYPE_VERB_SURU },
+	{ "しなく",           "", JA_TYPE_VERB_SURU },
+	{ "しなくて",         "", JA_TYPE_VERB_SURU },
+	{ "しませんでして",   "", JA_TYPE_VERB_SURU },
+	{ "した",             "", JA_TYPE_VERB_SURU },
+	{ "しました",         "", JA_TYPE_VERB_SURU },
+	{ "したら",           "", JA_TYPE_VERB_SURU },
+	{ "しましたら",       "", JA_TYPE_VERB_SURU },
+	{ "しなかった",       "", JA_TYPE_VERB_SURU },
+	{ "しませんでした",   "", JA_TYPE_VERB_SURU },
+	{ "しなかったら",     "", JA_TYPE_VERB_SURU },
+	{ "しませんでしたら", "", JA_TYPE_VERB_SURU },
+	{ "しなければ",       "", JA_TYPE_VERB_SURU },
+	{ "せず",             "", JA_TYPE_VERB_SURU },
+	{ "すべき",           "", JA_TYPE_VERB_SURU },
+	{ "すべからず",       "", JA_TYPE_VERB_SURU },
+
+	{ "できる",           "", JA_TYPE_VERB_SURU },
+	{ "できます",         "", JA_TYPE_VERB_SURU },
+	{ "できない",         "", JA_TYPE_VERB_SURU },
+	{ "できません",       "", JA_TYPE_VERB_SURU },
+	{ "できなく",         "", JA_TYPE_VERB_SURU },
+	{ "できなくて",       "", JA_TYPE_VERB_SURU },
+	{ "できて",           "", JA_TYPE_VERB_SURU },
+	{ "できまして",       "", JA_TYPE_VERB_SURU },
+	{ "できず",           "", JA_TYPE_VERB_SURU },
+	{ "できた",           "", JA_TYPE_VERB_SURU },
+	{ "できました",       "", JA_TYPE_VERB_SURU },
+	{ "できなかった",     "", JA_TYPE_VERB_SURU },
+	{ "できなかったら",   "", JA_TYPE_VERB_SURU },
+	{ "できなければ",     "", JA_TYPE_VERB_SURU },
+	{ "できませんでした", "", JA_TYPE_VERB_SURU },
+	{ "できませんでして", "", JA_TYPE_VERB_SURU },
+
+	{ "される",                 "", JA_TYPE_VERB_SURU },
+	{ "されます",               "", JA_TYPE_VERB_SURU },
+	{ "されない",               "", JA_TYPE_VERB_SURU },
+	{ "されません",             "", JA_TYPE_VERB_SURU },
+	{ "されなく",               "", JA_TYPE_VERB_SURU },
+	{ "されなくて",             "", JA_TYPE_VERB_SURU },
+	{ "されないで",             "", JA_TYPE_VERB_SURU },
+	{ "されて",                 "", JA_TYPE_VERB_SURU },
+	{ "されまして",             "", JA_TYPE_VERB_SURU },
+	{ "されず",                 "", JA_TYPE_VERB_SURU },
+	{ "された",                 "", JA_TYPE_VERB_SURU },
+	{ "されました",             "", JA_TYPE_VERB_SURU },
+	{ "されなかった",           "", JA_TYPE_VERB_SURU },
+	{ "されませんでした",       "", JA_TYPE_VERB_SURU },
+	{ "されなかったら",         "", JA_TYPE_VERB_SURU },
+	{ "されませんでしたら",     "", JA_TYPE_VERB_SURU },
+	{ "されなければ",           "", JA_TYPE_VERB_SURU },
+	{ "されたら",               "", JA_TYPE_VERB_SURU },
+	{ "されましたら",           "", JA_TYPE_VERB_SURU },
+	{ "されれば",               "", JA_TYPE_VERB_SURU },
+
+	{ "させる",                 "", JA_TYPE_VERB_SURU },
+	{ "させます",               "", JA_TYPE_VERB_SURU },
+	{ "させない",               "", JA_TYPE_VERB_SURU },
+	{ "させません",             "", JA_TYPE_VERB_SURU },
+	{ "させなく",               "", JA_TYPE_VERB_SURU },
+	{ "させなくて",             "", JA_TYPE_VERB_SURU },
+	{ "させないで",             "", JA_TYPE_VERB_SURU },
+	{ "させて",                 "", JA_TYPE_VERB_SURU },
+	{ "させまして",             "", JA_TYPE_VERB_SURU },
+	{ "させず",                 "", JA_TYPE_VERB_SURU },
+	{ "させた",                 "", JA_TYPE_VERB_SURU },
+	{ "させました",             "", JA_TYPE_VERB_SURU },
+	{ "させなかった",           "", JA_TYPE_VERB_SURU },
+	{ "させませんでした",       "", JA_TYPE_VERB_SURU },
+	{ "させなかったら",         "", JA_TYPE_VERB_SURU },
+	{ "させませんでしたら",     "", JA_TYPE_VERB_SURU },
+	{ "させなければ",           "", JA_TYPE_VERB_SURU },
+	{ "させたら",               "", JA_TYPE_VERB_SURU },
+	{ "させましたら",           "", JA_TYPE_VERB_SURU },
+	{ "させれば",               "", JA_TYPE_VERB_SURU },
+
+	{ "させられる",             "", JA_TYPE_VERB_SURU },
+	{ "させられます",           "", JA_TYPE_VERB_SURU },
+	{ "させられない",           "", JA_TYPE_VERB_SURU },
+	{ "させられません",         "", JA_TYPE_VERB_SURU },
+	{ "させられなく",           "", JA_TYPE_VERB_SURU },
+	{ "させられなくて",         "", JA_TYPE_VERB_SURU },
+	{ "させられないで",         "", JA_TYPE_VERB_SURU },
+	{ "させられて",             "", JA_TYPE_VERB_SURU },
+	{ "させられまして",         "", JA_TYPE_VERB_SURU },
+	{ "させられず",             "", JA_TYPE_VERB_SURU },
+	{ "させられた",             "", JA_TYPE_VERB_SURU },
+	{ "させられました",         "", JA_TYPE_VERB_SURU },
+	{ "させられなかった",       "", JA_TYPE_VERB_SURU },
+	{ "させられませんでした",   "", JA_TYPE_VERB_SURU },
+	{ "させられなかったら",     "", JA_TYPE_VERB_SURU },
+	{ "させられませんでしたら", "", JA_TYPE_VERB_SURU },
+	{ "させられなければ",       "", JA_TYPE_VERB_SURU },
+	{ "させられたら",           "", JA_TYPE_VERB_SURU },
+	{ "させられましたら",       "", JA_TYPE_VERB_SURU },
+	{ "させられれば",           "", JA_TYPE_VERB_SURU },
+
+	{ NULL, NULL, 0, NULL }
+};
+
+static int make_conjugation(const char_t *key, struct conjugation_data *cdata, conjugation_t **conj)
+{
+	char_t *dict_form;
+	int err;
+
+	/*
+	 * To get the dictionary form, we have to trim `cdata->conj.len` bytes from
+	 * the end of `key` and append `cdata->dict.suffix` to it.
+	 */
+	if ((err = char_concat(&dict_form, key, char_len(key) - cdata->conj.len,
+	                       cdata->dict.suffix, cdata->dict.len)) >= 0) {
 		char *utf8;
 
 		char_to_utf8_dyn(dict_form, char_len(dict_form), &utf8);
-		fprintf(stderr, "%s: dict_form: %s\n", __func__, utf8);
+		fprintf(stderr, " : %s (%d)\n", utf8, cdata->dict.len);
+		free(utf8);
+
+		err = conjugation_new(conj, dict_form, cdata->dict.len,
+		                      cdata->conj.suffix, cdata->conj.len);
+		free(dict_form);
+	}
+
+	return err;
+}
+
+static int _ctrie_lookup(trie_t *ctree, const char_t *key, conjugation_t ***results)
+{
+	struct conjugation_data **cdata;
+	int num_values;
+	int err;
+	int i;
+
+	cdata = NULL;
+
+	{
+		char *utf8;
+
+		char_to_utf8_dyn(key, char_len(key), &utf8);
+		fprintf(stderr, "Reverse lookup: \"%s\"\n", utf8);
+		fprintf(stderr, "trie_get_values_reverse(%p, %p \"%s\", %d, TRIE_LOOKUP_COLLECT, %p)\n",
+		        (void*)ctree, (void*)key, utf8, char_len(key), (void*)&cdata);
 		free(utf8);
 	}
-#endif /* DEBUG_JAPANESE */
 
-	if ((err = conjugation_new(&conjugation, dict_form, dict_suffix_len,
-	                           suffixes[suffix_idx], suffix_len)) < 0) {
-		free(dict_form);
-		fprintf(stderr, "conjugation_new() = %d\n", err);
+	num_values = trie_get_values_reverse(ctree, key, char_len(key), TRIE_LOOKUP_COLLECT,
+	                                     (void***)&cdata);
+	if (num_values < 0) {
+		fprintf(stderr, "trie_get_values_reverse: %s\n", strerror(-num_values));
+		return num_values;
+	} else {
+		fprintf(stderr, "trie_get_values_reverse: %d\n", num_values);
+	}
+
+	for (i = 0; i < num_values; i++) {
+		conjugation_t *conj;
+
+		conj = NULL;
+
+		fprintf(stderr, "cdata[%d] = %p\n", i, (void*)cdata[i]);
+
+		if ((err = make_conjugation(key, cdata[i], &conj)) < 0) {
+			break;
+		}
+
+		if ((err = array_add((void***)results, conj)) < 0) {
+			conjugation_free(&conj);
+			break;
+		}
+	}
+
+	array_free((void***)&cdata, NULL);
+
+	fprintf(stderr, " ~ %d results\n", num_values);
+
+	return num_values;
+}
+
+static int _conjugation_trie_init(trie_t **ctrie)
+{
+	int err;
+	int i;
+
+	if ((err = trie_new(ctrie)) < 0) {
 		return err;
 	}
-	conjugation->type = type;
 
-#if DEBUG_JAPANESE
-	{
-		char *from;
-		char *to;
-
-		fprintf(stderr, "kana_len = %d, suffix_len = %d, dict_suffix_len = %d, type = %d\n",
-		        kana_len, suffix_len, dict_suffix_len, type);
-		fprintf(stderr, "Adding %p to array %p\n", (void*)conjugation, (void*)results);
-		char_to_utf8_dyn(kana, kana_len, &from);
-		fprintf(stderr, "%s -> ", from);
-		char_to_utf8_dyn(dict_form, dict_len, &to);
-		fprintf(stderr, "%s\n", to);
-
-		free(from);
-		free(to);
-	}
-#endif /* DEBUG_JAPANESE */
-
-	if (array_add((void***)results, (void*)conjugation) < 0) {
-		free(conjugation);
-		free(dict_form);
-
-		return -ENOMEM;
+	for (i = 0; _conjugation_table[i].conj; i++) {
+		fprintf(stderr, "Inserting %s\n", _conjugation_table[i].conj);
+		if ((err = trie_insert_ctable_entry(*ctrie, &_conjugation_table[i])) < 0) {
+			return err;
+		}
 	}
 
 	return 0;
 }
 
-static int get_suru_verb_conjugation(const char_t *kana, const size_t kana_len,
-                                     conjugation_t ***results)
-{
-	return probe_conjugation_by_suffix_match(kana, kana_len, _suru_verb_suffixes,
-	                                         JA_TYPE_VERB_SURU, NULL, 0, results);
-}
-
-static int get_i_adjective_conjugation(const char_t *kana, const size_t kana_len,
-                                       conjugation_t ***results)
-{
-	static const struct {
-		const char_t **input_suffixes;
-		const char_t *dict_suffix;
-		int type;
-	} _probes[] = {
-		{
-			.input_suffixes = _yoi_adj_suffixes,
-			.dict_suffix    = _suffix_yoi,
-			.type           = JA_TYPE_ADJ_YOI
-		}, {
-			.input_suffixes = _ii_adj_suffixes,
-			.dict_suffix    = _suffix_ii,
-			.type           = JA_TYPE_ADJ_YOI
-		}, {
-			.input_suffixes = _i_adj_suffixes,
-			.dict_suffix    = _suffix_i,
-			.type           = JA_TYPE_ADJ_I
-		}, {
-			.input_suffixes = NULL,
-			.dict_suffix    = NULL,
-			.type           = 0
-		}
-	};
-
-	int err;
-	int i;
-
-	for (i = 0, err = -ENOENT; _probes[i].input_suffixes; i++) {
-		int result;
-
-		result = probe_conjugation_by_suffix_match(kana, kana_len, _probes[i].input_suffixes,
-		                                           _probes[i].type, _probes[i].dict_suffix, 1,
-		                                           results);
-
-		if (result == 0) {
-			err = 0;
-		} else if (result < 0 && result != -ENOENT) {
-			err = result;
-			break;
-		}
-	}
-
-	return err;
-}
-
-static const struct {
-	int (*func)(const char_t *, const size_t, conjugation_t ***);
-	const char *name;
-} _deconjugators[] = {
-	{
-		.func = get_i_adjective_conjugation,
-		.name = "get_i_adjective_conjugation"
-	}, {
-		.func = get_suru_verb_conjugation,
-		.name = "get_suru_verb_conjugation"
-	}, {
-		.func = NULL,
-		.name = NULL
-	}
-};
-
 int japanese_unconjugate(const char_t *kana, conjugation_t ***results)
 {
-	int kana_len;
+	static trie_t *ctrie = NULL;
 	int err;
-	int i;
 
-	if (!kana || !results) {
-		return -EINVAL;
-	}
-
-	kana_len = char_len(kana);
-	err = -ENOENT;
-
-	for (i = 0; _deconjugators[i].func; i++) {
-		int result;
-
-		result = _deconjugators[i].func(kana, kana_len, results);
-#if DEBUG_JAPANESE
-		fprintf(stderr, "%s() = %d\n", _deconjugators[i].name, err);
-#endif /* DEBUG_JAPANESE */
-
-		if (result == 0) {
-			err = 0;
-		} else if (err < 0 && err != -ENOENT) {
-			err = result;
-			break;
+	if (!ctrie) {
+		if ((err = _conjugation_trie_init(&ctrie)) < 0) {
+			return err;
 		}
 	}
 
-	return err;
-
+	return _ctrie_lookup(ctrie, kana, results);
 }
