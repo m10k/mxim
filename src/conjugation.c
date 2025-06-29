@@ -32,7 +32,8 @@ int conjugation_new(conjugation_t **dst,
                     const char_t *dict_form,
                     const int suffix_len,
                     const char_t *conjugation,
-                    const int conjugation_len)
+                    const int conjugation_len,
+                    const int type)
 {
 	conjugation_t *con;
 	int err;
@@ -55,6 +56,7 @@ int conjugation_new(conjugation_t **dst,
 
 	con->suffix_len = suffix_len;
 	con->conjugation_len = conjugation_len;
+	con->type = type;
 	*dst = con;
 
 cleanup:

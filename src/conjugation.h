@@ -34,7 +34,7 @@ struct conjugation {
 };
 
 int conjugation_new(conjugation_t **dst, const char_t *dict_form, const int suffix_len,
-                    const char_t *conjugation, const int conjugation_len);
+                    const char_t *conjugation, const int conjugation_len, const int type);
 int conjugation_free(conjugation_t **conjugation);
 
 int conjugation_conjugate(char **dst, const char *src, conjugation_t *conjugation);
