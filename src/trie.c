@@ -161,7 +161,7 @@ static int _trie_append_to_array(trie_t *trie, void ***array)
 	new_array[new_len] = NULL;
 	*array = new_array;
 
-	return 0;
+	return new_len;
 }
 
 int trie_get_values(trie_t *trie, const char_t *key, const int mode, void ***values)
