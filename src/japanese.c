@@ -319,6 +319,9 @@ static int make_conjugation(const char_t *key, struct conjugation_data *cdata, c
 
 		err = conjugation_new(conj, dict_form, cdata->dict.len,
 		                      cdata->conj.suffix, cdata->conj.len);
+		if (!err) {
+			(*conj)->type = cdata->type;
+		}
 		free(dict_form);
 	}
 
