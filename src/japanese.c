@@ -365,7 +365,7 @@ static int _ctrie_lookup(trie_t *ctree, const char_t *key, conjugation_t ***resu
 			break;
 		}
 
-		if ((err = array_add((void***)results, conj)) < 0) {
+		if ((err = array_add((void***)results, (void**)&conj, 1)) < 0) {
 			conjugation_free(&conj);
 			break;
 		}

@@ -87,7 +87,7 @@ static int _list_dicts_in_path(const char *path, char ***output)
 			break;
 		}
 
-		if ((err = array_add((void***)&dicts, dict_name)) < 0) {
+		if ((err = array_add((void***)&dicts, (void**)&dict_name, 1)) < 0) {
 			free(dict_name);
 		} else {
 			err = 0;
@@ -157,7 +157,7 @@ int aide_init(void)
 			continue;
 		}
 
-		if ((err = array_add((void***)&_dicts, dict)) < 0) {
+		if ((err = array_add((void***)&_dicts, (void**)&dict, 1)) < 0) {
 			dict_free(&dict);
 		}
 	}
@@ -331,7 +331,7 @@ static int aide_unconjugate(const char_t *conjugated, conjugation_t ***conjugati
 
 	/* Finally, add a null conjugation */
 	if (!(err = conjugation_new(&conjugation, conjugated, 0, NULL, 0, 0))) {
-		if ((err = array_add((void***)conjugations, conjugation)) < 0) {
+		if ((err = array_add((void***)conjugations, (void**)&conjugation, 1)) < 0) {
 			conjugation_free(&conjugation);
 		}
 	}

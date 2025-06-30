@@ -20,12 +20,15 @@
 
 #include "array.h"
 #include <errno.h>
+#include <limits.h>
 #include <stdlib.h>
+#include <string.h>
 
-int array_add(void ***array, void *item)
+int array_add(void ***array, void **items, const int num_items)
 {
         void **arr;
         int len;
+        int new_len;
 
         if (!array) {
                 return -EINVAL;
@@ -39,15 +42,20 @@ int array_add(void ***array, void *item)
                 }
         }
 
-        if (!(arr = realloc(*array, (len + 1 + 1) * sizeof(*arr)))) {
+        if (INT_MAX - len <= num_items) {
+	        return -EOVERFLOW;
+        }
+
+        new_len = len + num_items;
+        if (!(arr = realloc(*array, (new_len + 1) * sizeof(*arr)))) {
                 return -ENOMEM;
         }
 
-        arr[len] = item;
-        arr[len + 1] = NULL;
+        memmove(arr + len, items, num_items * sizeof(*items));
+        arr[new_len] = NULL;
 
         *array = arr;
-        return len;
+        return new_len;
 }
 
 static int _generic_dealloc(void **ptr)
