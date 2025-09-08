@@ -250,7 +250,19 @@ int segment_get_input_decorated(segment_t *segment, const int selected, const in
 	}
 
 	if (selected) {
-		for (i = 0; i < segment->num_candidates; i++) {
+		int min;
+		int max;
+
+		min = segment->selection - 5;
+		if (min < 0) {
+			min = 0;
+		}
+		max = min + 10;
+		if (max > segment->num_candidates) {
+			max = segment->num_candidates;
+		}
+
+		for (i = min; i < max; i++) {
 			static const char _selection_header[] = "<span foreground=\"blue\">";
 			static const char _selection_trailer[] = "</span>";
 
